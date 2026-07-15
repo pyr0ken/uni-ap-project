@@ -1,4 +1,4 @@
-package hotel.ui;
+ package hotel.ui;
 
 import hotel.exception.HotelException;
 import hotel.model.Reservation;
@@ -468,19 +468,19 @@ public class RoomsPanel extends JPanel {
     }
 
     private void loadRoomImage(JLabel label, RoomType type) {
-        String urlStr;
+        String imgPath;
         switch(type) {
             case SINGLE:
-                urlStr = "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=150&h=110&q=80";
+                imgPath = "assets/single.jpg";
                 break;
             case DOUBLE:
-                urlStr = "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=150&h=110&q=80";
+                imgPath = "assets/double.jpg";
                 break;
             case SUITE:
-                urlStr = "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=150&h=110&q=80";
+                imgPath = "assets/suite.jpg";
                 break;
             default:
-                urlStr = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=150&h=110&q=80";
+                imgPath = "assets/default.jpg";
                 break;
         }
 
@@ -494,14 +494,16 @@ public class RoomsPanel extends JPanel {
             @Override
             protected ImageIcon doInBackground() throws Exception {
                 try {
-                    java.net.URL url = new java.net.URL(urlStr);
-                    java.awt.Image img = javax.imageio.ImageIO.read(url);
-                    if (img != null) {
-                        java.awt.Image scaled = img.getScaledInstance(130, 100, java.awt.Image.SCALE_SMOOTH);
-                        return new ImageIcon(scaled);
+                    java.io.File file = new java.io.File(imgPath);
+                    if (file.exists()) {
+                        java.awt.Image img = javax.imageio.ImageIO.read(file);
+                        if (img != null) {
+                            java.awt.Image scaled = img.getScaledInstance(130, 100, java.awt.Image.SCALE_SMOOTH);
+                            return new ImageIcon(scaled);
+                        }
                     }
                 } catch (Exception e) {
-                    System.err.println("Failed to load image: " + e.getMessage());
+                    System.err.println("Failed to load local image: " + e.getMessage());
                 }
                 return null;
             }
