@@ -23,12 +23,9 @@ public class RegisterPanel extends JPanel {
         GridBagConstraints gbc = new GridBagConstraints();
         
         // Register Card Panel
-        JPanel card = new JPanel(new GridBagLayout());
-        card.setBackground(Theme.BG_SECONDARY);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                Theme.PANEL_BORDER,
-                BorderFactory.createEmptyBorder(30, 45, 30, 45)
-        ));
+        Theme.RoundedPanel card = new Theme.RoundedPanel(24, Theme.BG_SECONDARY);
+        card.setLayout(new GridBagLayout());
+        card.setBorder(BorderFactory.createEmptyBorder(30, 45, 30, 45));
         card.setPreferredSize(new Dimension(480, 560));
 
         GridBagConstraints cardGbc = new GridBagConstraints();

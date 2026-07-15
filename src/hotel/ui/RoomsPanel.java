@@ -331,17 +331,20 @@ public class RoomsPanel extends JPanel {
     }
 
     private JPanel createRoomCard(Room room, LocalDate checkIn, LocalDate checkOut) {
-        JPanel card = new JPanel(new BorderLayout(15, 10));
-        card.setBackground(Theme.BG_SECONDARY);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                Theme.PANEL_BORDER,
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        Theme.RoundedPanel card = new Theme.RoundedPanel(16, Theme.BG_SECONDARY);
+        card.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
-        // Details Panel (West/Center)
+        // Image Label (West)
+        JLabel lblImage = new JLabel();
+        lblImage.setPreferredSize(new Dimension(130, 100));
+        loadRoomImage(lblImage, room.getType());
+        card.add(lblImage, BorderLayout.WEST);
+
+        // Details Panel (Center)
         JPanel detailsPanel = new JPanel();
         detailsPanel.setLayout(new BoxLayout(detailsPanel, BoxLayout.Y_AXIS));
         detailsPanel.setBackground(Theme.BG_SECONDARY);
+        detailsPanel.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
 
         // Header: Room Number & Type badge
         JPanel headerLine = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -452,22 +455,74 @@ public class RoomsPanel extends JPanel {
         card.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent e) {
-                card.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(Theme.ACCENT, 1, true),
-                        BorderFactory.createEmptyBorder(15, 15, 15, 15)
-                ));
+                card.setBorderColor(Theme.ACCENT);
             }
 
             @Override
             public void mouseExited(java.awt.event.MouseEvent e) {
-                card.setBorder(BorderFactory.createCompoundBorder(
-                        Theme.PANEL_BORDER,
-                        BorderFactory.createEmptyBorder(15, 15, 15, 15)
-                ));
+                card.setBorderColor(Theme.BORDER_COLOR);
             }
         });
 
         return card;
+    }
+
+    private void loadRoomImage(JLabel label, RoomType type) {
+        String urlStr;
+        switch(type) {
+            case SINGLE:
+                urlStr = "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=150&h=110&q=80";
+                break;
+            case DOUBLE:
+                urlStr = "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=150&h=110&q=80";
+                break;
+            case SUITE:
+                urlStr = "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=150&h=110&q=80";
+                break;
+            default:
+                urlStr = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=150&h=110&q=80";
+                break;
+        }
+
+        label.setText("Loading...");
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        label.setForeground(Theme.TEXT_MUTED);
+        label.setFont(Theme.FONT_CAPTION);
+        label.setBorder(BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1, true));
+
+        SwingWorker<ImageIcon, Void> worker = new SwingWorker<>() {
+            @Override
+            protected ImageIcon doInBackground() throws Exception {
+                try {
+                    java.net.URL url = new java.net.URL(urlStr);
+                    java.awt.Image img = javax.imageio.ImageIO.read(url);
+                    if (img != null) {
+                        java.awt.Image scaled = img.getScaledInstance(130, 100, java.awt.Image.SCALE_SMOOTH);
+                        return new ImageIcon(scaled);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to load image: " + e.getMessage());
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    ImageIcon icon = get();
+                    if (icon != null) {
+                        label.setText("");
+                        label.setIcon(icon);
+                        label.setBorder(null);
+                    } else {
+                        label.setText("No Image");
+                    }
+                } catch (Exception e) {
+                    label.setText("No Image");
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void updateFooterCalculation(LocalDate checkIn, LocalDate checkOut) {

@@ -23,12 +23,9 @@ public class LoginPanel extends JPanel {
         GridBagConstraints gbc = new GridBagConstraints();
         
         // Login Card Panel
-        JPanel card = new JPanel(new GridBagLayout());
-        card.setBackground(Theme.BG_SECONDARY);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                Theme.PANEL_BORDER,
-                BorderFactory.createEmptyBorder(40, 50, 40, 50)
-        ));
+        Theme.RoundedPanel card = new Theme.RoundedPanel(24, Theme.BG_SECONDARY);
+        card.setLayout(new GridBagLayout());
+        card.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
         card.setPreferredSize(new Dimension(450, 480));
 
         GridBagConstraints cardGbc = new GridBagConstraints();
