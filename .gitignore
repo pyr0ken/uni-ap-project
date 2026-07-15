@@ -1,0 +1,13 @@
+# Compiled Java class files
+bin/
+*.class
+
+# Runtime application data
+data/
+
+# Generated guest invoices
+invoices/
+
+# OS-specific temp files
+.DS_Store
+Thumbs.db
