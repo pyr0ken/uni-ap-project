@@ -5,6 +5,7 @@ import hotel.model.Reservation;
 import hotel.model.Reservation.ReservationStatus;
 import hotel.model.Room;
 import hotel.service.HotelService;
+import hotel.util.ImageLoader;
 
 import javax.swing.*;
 import java.awt.*;
@@ -41,14 +42,24 @@ public class BookingsPanel extends JPanel {
 
     private void initComponent() {
         // Top Header and filter row
-        JPanel topPanel = new JPanel(new BorderLayout());
+        JPanel topPanel = new JPanel(new BorderLayout(12, 0));
         topPanel.setBackground(Theme.BG_PRIMARY);
         topPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
+
+        JPanel titlePanel = new JPanel();
+        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
+        titlePanel.setBackground(Theme.BG_PRIMARY);
 
         JLabel lblTitle = new JLabel("Your Reservations");
         lblTitle.setFont(Theme.FONT_TITLE_LARGE);
         lblTitle.setForeground(Theme.TEXT_PRIMARY);
-        topPanel.add(lblTitle, BorderLayout.WEST);
+        titlePanel.add(lblTitle);
+        titlePanel.add(Box.createVerticalStrut(3));
+        JLabel lblSubtitle = new JLabel("Manage upcoming stays, invoices, cancellations, and reviews.");
+        lblSubtitle.setFont(Theme.FONT_BODY);
+        lblSubtitle.setForeground(Theme.TEXT_SECONDARY);
+        titlePanel.add(lblSubtitle);
+        topPanel.add(titlePanel, BorderLayout.WEST);
 
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         filterPanel.setBackground(Theme.BG_PRIMARY);
@@ -74,6 +85,7 @@ public class BookingsPanel extends JPanel {
         scrollPane = new JScrollPane(bookingsList);
         scrollPane.setBackground(Theme.BG_PRIMARY);
         scrollPane.setBorder(null);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         add(scrollPane, BorderLayout.CENTER);
     }
@@ -104,7 +116,7 @@ public class BookingsPanel extends JPanel {
         gbc.insets = new Insets(8, 0, 8, 0);
 
         if (userRes.isEmpty()) {
-            JLabel lblEmpty = new JLabel("No reservations found.", JLabel.CENTER);
+            JLabel lblEmpty = new JLabel("No reservations match this status.", JLabel.CENTER);
             lblEmpty.setFont(Theme.FONT_SUBTITLE);
             lblEmpty.setForeground(Theme.TEXT_SECONDARY);
             gbc.gridy = 0;
@@ -135,7 +147,7 @@ public class BookingsPanel extends JPanel {
                 .filter(r -> r.getRoomNumber().equals(res.getRoomNumber()))
                 .findFirst().orElse(null);
         Room.RoomType roomType = (room != null) ? room.getType() : Room.RoomType.SINGLE;
-        loadRoomImage(lblImage, roomType);
+        ImageLoader.loadRoomImage(lblImage, roomType);
         card.add(lblImage, BorderLayout.WEST);
 
         // Details Panel (Center)
@@ -147,6 +159,7 @@ public class BookingsPanel extends JPanel {
         // Title: ID and Status badge
         JPanel headerLine = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         headerLine.setBackground(Theme.BG_SECONDARY);
+        headerLine.setAlignmentX(Component.LEFT_ALIGNMENT);
         
         JLabel lblId = new JLabel(res.getReservationId() + "  ");
         lblId.setFont(Theme.FONT_SUBTITLE);
@@ -155,7 +168,7 @@ public class BookingsPanel extends JPanel {
 
         JLabel lblBadge = new JLabel("  " + res.getStatus().getDisplayName() + "  ");
         lblBadge.setFont(Theme.FONT_CAPTION);
-        lblBadge.setForeground(Theme.TEXT_PRIMARY);
+        lblBadge.setForeground(Color.WHITE);
         
         if (res.getStatus() == ReservationStatus.ACTIVE) {
             lblBadge.setBackground(Theme.ACCENT);
@@ -175,6 +188,7 @@ public class BookingsPanel extends JPanel {
         JLabel lblRoom = new JLabel("Room " + res.getRoomNumber() + "  |  Check-in: " + res.getCheckInDate() + "  →  Check-out: " + res.getCheckOutDate());
         lblRoom.setFont(Theme.FONT_BODY);
         lblRoom.setForeground(Theme.TEXT_PRIMARY);
+        lblRoom.setAlignmentX(Component.LEFT_ALIGNMENT);
         details.add(lblRoom);
         details.add(Box.createVerticalStrut(4));
 
@@ -182,6 +196,7 @@ public class BookingsPanel extends JPanel {
         JLabel lblMeta = new JLabel("Duration: " + nights + " nights  |  Guests: " + res.getTotalGuests() + "  |  Paid: $" + res.getTotalCost().toPlainString());
         lblMeta.setFont(Theme.FONT_CAPTION);
         lblMeta.setForeground(Theme.TEXT_SECONDARY);
+        lblMeta.setAlignmentX(Component.LEFT_ALIGNMENT);
         details.add(lblMeta);
 
         card.add(details, BorderLayout.CENTER);
@@ -189,25 +204,26 @@ public class BookingsPanel extends JPanel {
         // Actions Panel (Right)
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         actions.setBackground(Theme.BG_SECONDARY);
+        actions.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Theme.BORDER_COLOR));
 
-        JButton btnInvoice = new JButton("📄 View Invoice");
+        JButton btnInvoice = new JButton("View Invoice");
         Theme.styleButton(btnInvoice, Theme.BG_TERTIARY, Theme.TEXT_PRIMARY);
         btnInvoice.addActionListener(e -> displayInvoice(res.getReservationId()));
         actions.add(btnInvoice);
 
         if (res.getStatus() == ReservationStatus.ACTIVE) {
-            JButton btnCancel = new JButton("❌ Cancel Booking");
+            JButton btnCancel = new JButton("Cancel Booking");
             Theme.styleButton(btnCancel, Theme.DANGER, Theme.TEXT_PRIMARY);
             btnCancel.addActionListener(e -> cancelBooking(res));
             actions.add(btnCancel);
         } else if (res.getStatus() == ReservationStatus.COMPLETED) {
-            JButton btnReview = new JButton("⭐ Rate & Review");
+            JButton btnReview = new JButton("Rate & Review");
             Theme.styleButton(btnReview, Theme.WARNING, Theme.TEXT_PRIMARY);
             btnReview.addActionListener(e -> openReviewDialog(res));
             actions.add(btnReview);
         }
 
-        card.add(actions, BorderLayout.EAST);
+        card.add(actions, BorderLayout.SOUTH);
 
         // Card Hover highlight effects
         card.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -223,66 +239,6 @@ public class BookingsPanel extends JPanel {
         });
 
         return card;
-    }
-
-    private void loadRoomImage(JLabel label, Room.RoomType type) {
-        String imgPath;
-        switch(type) {
-            case SINGLE:
-                imgPath = "assets/single.jpg";
-                break;
-            case DOUBLE:
-                imgPath = "assets/double.jpg";
-                break;
-            case SUITE:
-                imgPath = "assets/suite.jpg";
-                break;
-            default:
-                imgPath = "assets/default.jpg";
-                break;
-        }
-
-        label.setText("Loading...");
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        label.setForeground(Theme.TEXT_MUTED);
-        label.setFont(Theme.FONT_CAPTION);
-        label.setBorder(BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1, true));
-
-        SwingWorker<ImageIcon, Void> worker = new SwingWorker<>() {
-            @Override
-            protected ImageIcon doInBackground() throws Exception {
-                try {
-                    java.io.File file = new java.io.File(imgPath);
-                    if (file.exists()) {
-                        java.awt.Image img = javax.imageio.ImageIO.read(file);
-                        if (img != null) {
-                            java.awt.Image scaled = img.getScaledInstance(130, 100, java.awt.Image.SCALE_SMOOTH);
-                            return new ImageIcon(scaled);
-                        }
-                    }
-                } catch (Exception e) {
-                    System.err.println("Failed to load local image: " + e.getMessage());
-                }
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    ImageIcon icon = get();
-                    if (icon != null) {
-                        label.setText("");
-                        label.setIcon(icon);
-                        label.setBorder(null);
-                    } else {
-                        label.setText("No Image");
-                    }
-                } catch (Exception e) {
-                    label.setText("No Image");
-                }
-            }
-        };
-        worker.execute();
     }
 
     private void displayInvoice(String reservationId) {

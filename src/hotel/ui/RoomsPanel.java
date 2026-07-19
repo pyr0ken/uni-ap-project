@@ -5,9 +5,9 @@ import hotel.model.Reservation;
 import hotel.model.Room;
 import hotel.model.Room.RoomType;
 import hotel.service.HotelService;
+import hotel.util.ImageLoader;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -64,21 +64,30 @@ public class RoomsPanel extends JPanel {
 
     private void initComponent() {
         // --- 1. TOP HEADER & FILTER BAR ---
-        JPanel headerPanel = new JPanel(new BorderLayout());
+        JPanel headerPanel = new JPanel(new BorderLayout(0, 14));
         headerPanel.setBackground(Theme.BG_PRIMARY);
+
+        JPanel titlePanel = new JPanel();
+        titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
+        titlePanel.setBackground(Theme.BG_PRIMARY);
 
         JLabel lblTitle = new JLabel("Explore Rooms & Book Stays");
         lblTitle.setFont(Theme.FONT_TITLE_LARGE);
         lblTitle.setForeground(Theme.TEXT_PRIMARY);
-        headerPanel.add(lblTitle, BorderLayout.NORTH);
+        lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        titlePanel.add(lblTitle);
+        titlePanel.add(Box.createVerticalStrut(3));
+        JLabel lblSubtitle = new JLabel("Compare available rooms, amenities, and total stay prices.");
+        lblSubtitle.setFont(Theme.FONT_BODY);
+        lblSubtitle.setForeground(Theme.TEXT_SECONDARY);
+        lblSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        titlePanel.add(lblSubtitle);
+        headerPanel.add(titlePanel, BorderLayout.NORTH);
 
         // Filter Grid Panel
-        JPanel filterGrid = new JPanel(new GridBagLayout());
-        filterGrid.setBackground(Theme.BG_SECONDARY);
-        filterGrid.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 1, 1, 1, Theme.BORDER_COLOR),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        Theme.RoundedPanel filterGrid = new Theme.RoundedPanel(10, Theme.BG_SECONDARY);
+        filterGrid.setLayout(new GridBagLayout());
+        filterGrid.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -169,15 +178,23 @@ public class RoomsPanel extends JPanel {
         gbc.gridwidth = 1;
 
         // Search Button
-        JButton btnSearch = new JButton("🔍 Search Rooms");
+        JPanel filterActions = new JPanel(new GridLayout(1, 2, 8, 0));
+        filterActions.setBackground(Theme.BG_SECONDARY);
+        JButton btnReset = new JButton("Reset");
+        Theme.styleButton(btnReset, Theme.BG_TERTIARY, Theme.TEXT_PRIMARY);
+        btnReset.addActionListener(e -> resetFilters());
+
+        JButton btnSearch = new JButton("Search Rooms");
         Theme.styleButton(btnSearch, Theme.ACCENT, Theme.TEXT_PRIMARY);
         btnSearch.addActionListener(e -> {
             selectedRoomNumbers.clear();
             searchRooms();
         });
         
+        filterActions.add(btnReset);
+        filterActions.add(btnSearch);
         gbc.gridx = 2; gbc.gridy = 5;
-        filterGrid.add(btnSearch, gbc);
+        filterGrid.add(filterActions, gbc);
 
         headerPanel.add(filterGrid, BorderLayout.CENTER);
         add(headerPanel, BorderLayout.NORTH);
@@ -186,10 +203,12 @@ public class RoomsPanel extends JPanel {
         listContainer = new JPanel();
         listContainer.setLayout(new GridBagLayout());
         listContainer.setBackground(Theme.BG_PRIMARY);
+        listContainer.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
 
         scrollPane = new JScrollPane(listContainer);
         scrollPane.setBackground(Theme.BG_PRIMARY);
         scrollPane.setBorder(null);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         add(scrollPane, BorderLayout.CENTER);
 
@@ -223,6 +242,23 @@ public class RoomsPanel extends JPanel {
         footer.add(btnBookSelected, BorderLayout.EAST);
 
         add(footer, BorderLayout.SOUTH);
+    }
+
+    private void resetFilters() {
+        txtCheckIn.setText(LocalDate.now().toString());
+        txtCheckOut.setText(LocalDate.now().plusDays(2).toString());
+        cbRoomType.setSelectedIndex(0);
+        txtMinPrice.setText("");
+        txtMaxPrice.setText("");
+        spinGuests.setValue(1);
+        chkTV.setSelected(false);
+        chkInternet.setSelected(false);
+        chkFridge.setSelected(false);
+        chkKitchen.setSelected(false);
+        chkJacuzzi.setSelected(false);
+        chkBalcony.setSelected(false);
+        selectedRoomNumbers.clear();
+        searchRooms();
     }
 
     private JLabel createLabel(String text) {
@@ -296,7 +332,7 @@ public class RoomsPanel extends JPanel {
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        int cols = 2; // two-column grid
+        int cols = 1;
         int row = 0;
         int col = 0;
 
@@ -305,7 +341,7 @@ public class RoomsPanel extends JPanel {
             lblNoRooms.setFont(Theme.FONT_SUBTITLE);
             lblNoRooms.setForeground(Theme.TEXT_SECONDARY);
             gbc.gridx = 0; gbc.gridy = 0;
-            gbc.gridwidth = 2;
+            gbc.gridwidth = 1;
             listContainer.add(lblNoRooms, gbc);
         } else {
             for (Room room : matchedRooms) {
@@ -337,7 +373,7 @@ public class RoomsPanel extends JPanel {
         // Image Label (West)
         JLabel lblImage = new JLabel();
         lblImage.setPreferredSize(new Dimension(130, 100));
-        loadRoomImage(lblImage, room.getType());
+        ImageLoader.loadRoomImage(lblImage, room.getType());
         card.add(lblImage, BorderLayout.WEST);
 
         // Details Panel (Center)
@@ -349,13 +385,14 @@ public class RoomsPanel extends JPanel {
         // Header: Room Number & Type badge
         JPanel headerLine = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         headerLine.setBackground(Theme.BG_SECONDARY);
+        headerLine.setAlignmentX(Component.LEFT_ALIGNMENT);
         JLabel lblRoomNum = new JLabel("Room " + room.getRoomNumber() + "  ");
         lblRoomNum.setFont(Theme.FONT_SUBTITLE);
         lblRoomNum.setForeground(Theme.TEXT_PRIMARY);
         
         JLabel lblBadge = new JLabel("  " + room.getType().getDisplayName() + "  ");
         lblBadge.setFont(Theme.FONT_CAPTION);
-        lblBadge.setForeground(Theme.TEXT_PRIMARY);
+        lblBadge.setForeground(Color.WHITE);
         lblBadge.setBackground(Theme.ACCENT);
         lblBadge.setOpaque(true);
         lblBadge.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
@@ -371,6 +408,7 @@ public class RoomsPanel extends JPanel {
         JLabel lblRating = new JLabel();
         lblRating.setFont(Theme.FONT_BODY);
         lblRating.setForeground(Theme.WARNING);
+        lblRating.setAlignmentX(Component.LEFT_ALIGNMENT);
         if (reviews.isEmpty()) {
             lblRating.setText("★ New Room (No ratings)");
         } else {
@@ -382,15 +420,17 @@ public class RoomsPanel extends JPanel {
         detailsPanel.add(Box.createVerticalStrut(5));
 
         // Capacity
-        JLabel lblCap = new JLabel("👤 Capacity: " + room.getCapacity() + " guests");
+        JLabel lblCap = new JLabel("Capacity: " + room.getCapacity() + " guests");
         lblCap.setFont(Theme.FONT_BODY);
         lblCap.setForeground(Theme.TEXT_SECONDARY);
+        lblCap.setAlignmentX(Component.LEFT_ALIGNMENT);
         detailsPanel.add(lblCap);
         detailsPanel.add(Box.createVerticalStrut(8));
 
         // Amenities chips
         JPanel chips = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
         chips.setBackground(Theme.BG_SECONDARY);
+        chips.setAlignmentX(Component.LEFT_ALIGNMENT);
         for (String amenity : room.getAmenities()) {
             JLabel chip = new JLabel(amenity);
             chip.setFont(Theme.FONT_CAPTION);
@@ -465,66 +505,6 @@ public class RoomsPanel extends JPanel {
         });
 
         return card;
-    }
-
-    private void loadRoomImage(JLabel label, RoomType type) {
-        String imgPath;
-        switch(type) {
-            case SINGLE:
-                imgPath = "assets/single.jpg";
-                break;
-            case DOUBLE:
-                imgPath = "assets/double.jpg";
-                break;
-            case SUITE:
-                imgPath = "assets/suite.jpg";
-                break;
-            default:
-                imgPath = "assets/default.jpg";
-                break;
-        }
-
-        label.setText("Loading...");
-        label.setHorizontalAlignment(SwingConstants.CENTER);
-        label.setForeground(Theme.TEXT_MUTED);
-        label.setFont(Theme.FONT_CAPTION);
-        label.setBorder(BorderFactory.createLineBorder(Theme.BORDER_COLOR, 1, true));
-
-        SwingWorker<ImageIcon, Void> worker = new SwingWorker<>() {
-            @Override
-            protected ImageIcon doInBackground() throws Exception {
-                try {
-                    java.io.File file = new java.io.File(imgPath);
-                    if (file.exists()) {
-                        java.awt.Image img = javax.imageio.ImageIO.read(file);
-                        if (img != null) {
-                            java.awt.Image scaled = img.getScaledInstance(130, 100, java.awt.Image.SCALE_SMOOTH);
-                            return new ImageIcon(scaled);
-                        }
-                    }
-                } catch (Exception e) {
-                    System.err.println("Failed to load local image: " + e.getMessage());
-                }
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    ImageIcon icon = get();
-                    if (icon != null) {
-                        label.setText("");
-                        label.setIcon(icon);
-                        label.setBorder(null);
-                    } else {
-                        label.setText("No Image");
-                    }
-                } catch (Exception e) {
-                    label.setText("No Image");
-                }
-            }
-        };
-        worker.execute();
     }
 
     private void updateFooterCalculation(LocalDate checkIn, LocalDate checkOut) {
