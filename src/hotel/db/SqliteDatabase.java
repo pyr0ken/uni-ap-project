@@ -104,7 +104,14 @@ public class SqliteDatabase {
         }
     }
 
+    private static final java.util.Set<String> VALID_TABLES = java.util.Set.of(
+        "users", "rooms", "reservations", "reviews"
+    );
+
     private boolean isTableEmpty(String tableName) {
+        if (!VALID_TABLES.contains(tableName)) {
+            throw new IllegalArgumentException("Invalid table name: " + tableName);
+        }
         String sql = "SELECT COUNT(*) FROM " + tableName;
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement();
@@ -121,46 +128,46 @@ public class SqliteDatabase {
     private void migrateTextFilesToDb() {
         // Migrate Users
         File usersFile = new File(DATA_DIR + "/users.txt");
-        if (usersFile.exists() && usersFile.length() > 0 && isTableEmpty("users")) {
+        if (usersFile.exists() && isTableEmpty("users")) {
             List<User> users = loadUsersFromTextFile();
             if (!users.isEmpty()) {
                 saveUsers(users);
                 System.out.println("Migrated " + users.size() + " users from users.txt to SQLite.");
-                usersFile.renameTo(new File(DATA_DIR + "/users.txt.bak"));
             }
+            usersFile.renameTo(new File(DATA_DIR + "/users.txt.bak"));
         }
 
         // Migrate Rooms
         File roomsFile = new File(DATA_DIR + "/rooms.txt");
-        if (roomsFile.exists() && roomsFile.length() > 0 && isTableEmpty("rooms")) {
+        if (roomsFile.exists() && isTableEmpty("rooms")) {
             List<Room> rooms = loadRoomsFromTextFile();
             if (!rooms.isEmpty()) {
                 saveRooms(rooms);
                 System.out.println("Migrated " + rooms.size() + " rooms from rooms.txt to SQLite.");
-                roomsFile.renameTo(new File(DATA_DIR + "/rooms.txt.bak"));
             }
+            roomsFile.renameTo(new File(DATA_DIR + "/rooms.txt.bak"));
         }
 
         // Migrate Reservations
         File resFile = new File(DATA_DIR + "/reservations.txt");
-        if (resFile.exists() && resFile.length() > 0 && isTableEmpty("reservations")) {
+        if (resFile.exists() && isTableEmpty("reservations")) {
             List<Reservation> reservations = loadReservationsFromTextFile();
             if (!reservations.isEmpty()) {
                 saveReservations(reservations);
                 System.out.println("Migrated " + reservations.size() + " reservations from reservations.txt to SQLite.");
-                resFile.renameTo(new File(DATA_DIR + "/reservations.txt.bak"));
             }
+            resFile.renameTo(new File(DATA_DIR + "/reservations.txt.bak"));
         }
 
         // Migrate Reviews
         File revFile = new File(DATA_DIR + "/reviews.txt");
-        if (revFile.exists() && revFile.length() > 0 && isTableEmpty("reviews")) {
+        if (revFile.exists() && isTableEmpty("reviews")) {
             List<Review> reviews = loadReviewsFromTextFile();
             if (!reviews.isEmpty()) {
                 saveReviews(reviews);
                 System.out.println("Migrated " + reviews.size() + " reviews from reviews.txt to SQLite.");
-                revFile.renameTo(new File(DATA_DIR + "/reviews.txt.bak"));
             }
+            revFile.renameTo(new File(DATA_DIR + "/reviews.txt.bak"));
         }
     }
 
@@ -303,13 +310,28 @@ public class SqliteDatabase {
                         rs.getString("password"),
                         rs.getString("first_name"),
                         rs.getString("last_name"),
-                        BigDecimal.valueOf(rs.getDouble("credit"))
+                        new BigDecimal(rs.getString("credit"))
                 ));
             }
         } catch (SQLException e) {
             System.err.println("Error loading users from SQLite: " + e.getMessage());
         }
         return users;
+    }
+
+    public void saveUser(User user) {
+        String sql = "INSERT OR REPLACE INTO users (username, password, first_name, last_name, credit) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, user.getUsername());
+            pstmt.setString(2, user.getPassword());
+            pstmt.setString(3, user.getFirstName());
+            pstmt.setString(4, user.getLastName());
+            pstmt.setString(5, user.getCredit().toPlainString());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error saving user to SQLite: " + e.getMessage());
+        }
     }
 
     public void saveUsers(List<User> users) {
@@ -322,7 +344,7 @@ public class SqliteDatabase {
                     pstmt.setString(2, user.getPassword());
                     pstmt.setString(3, user.getFirstName());
                     pstmt.setString(4, user.getLastName());
-                    pstmt.setDouble(5, user.getCredit().doubleValue());
+                    pstmt.setString(5, user.getCredit().toPlainString());
                     pstmt.addBatch();
                 }
                 pstmt.executeBatch();
@@ -346,7 +368,7 @@ public class SqliteDatabase {
             while (rs.next()) {
                 String roomNum = rs.getString("room_number");
                 RoomType type = RoomType.fromString(rs.getString("type"));
-                BigDecimal price = BigDecimal.valueOf(rs.getDouble("price_per_night"));
+                BigDecimal price = new BigDecimal(rs.getString("price_per_night"));
                 List<String> amenities = new ArrayList<>();
                 String amenitiesStr = rs.getString("amenities");
                 if (amenitiesStr != null && !amenitiesStr.trim().isEmpty()) {
@@ -361,6 +383,21 @@ public class SqliteDatabase {
         return rooms;
     }
 
+    public void saveRoom(Room room) {
+        String sql = "INSERT OR REPLACE INTO rooms (room_number, type, price_per_night, amenities, capacity) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, room.getRoomNumber());
+            pstmt.setString(2, room.getType().getDisplayName());
+            pstmt.setString(3, room.getPricePerNight().toPlainString());
+            pstmt.setString(4, room.getAmenitiesString());
+            pstmt.setInt(5, room.getCapacity());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error saving room to SQLite: " + e.getMessage());
+        }
+    }
+
     public void saveRooms(List<Room> rooms) {
         String sql = "INSERT OR REPLACE INTO rooms (room_number, type, price_per_night, amenities, capacity) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = getConnection()) {
@@ -369,7 +406,7 @@ public class SqliteDatabase {
                 for (Room room : rooms) {
                     pstmt.setString(1, room.getRoomNumber());
                     pstmt.setString(2, room.getType().getDisplayName());
-                    pstmt.setDouble(3, room.getPricePerNight().doubleValue());
+                    pstmt.setString(3, room.getPricePerNight().toPlainString());
                     pstmt.setString(4, room.getAmenitiesString());
                     pstmt.setInt(5, room.getCapacity());
                     pstmt.addBatch();
@@ -399,7 +436,7 @@ public class SqliteDatabase {
                 LocalDate checkIn = LocalDate.parse(rs.getString("check_in_date"));
                 LocalDate checkOut = LocalDate.parse(rs.getString("check_out_date"));
                 int guests = rs.getInt("total_guests");
-                BigDecimal cost = BigDecimal.valueOf(rs.getDouble("total_cost"));
+                BigDecimal cost = new BigDecimal(rs.getString("total_cost"));
                 ReservationStatus status = ReservationStatus.fromString(rs.getString("status"));
                 reservations.add(new Reservation(id, username, roomNum, checkIn, checkOut, guests, cost, status));
             }
@@ -407,6 +444,24 @@ public class SqliteDatabase {
             System.err.println("Error loading reservations from SQLite: " + e.getMessage());
         }
         return reservations;
+    }
+
+    public void saveReservation(Reservation res) {
+        String sql = "INSERT OR REPLACE INTO reservations (reservation_id, username, room_number, check_in_date, check_out_date, total_guests, total_cost, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, res.getReservationId());
+            pstmt.setString(2, res.getUsername());
+            pstmt.setString(3, res.getRoomNumber());
+            pstmt.setString(4, res.getCheckInDate().toString());
+            pstmt.setString(5, res.getCheckOutDate().toString());
+            pstmt.setInt(6, res.getTotalGuests());
+            pstmt.setString(7, res.getTotalCost().toPlainString());
+            pstmt.setString(8, res.getStatus().getDisplayName());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error saving reservation to SQLite: " + e.getMessage());
+        }
     }
 
     public void saveReservations(List<Reservation> reservations) {
@@ -421,7 +476,7 @@ public class SqliteDatabase {
                     pstmt.setString(4, res.getCheckInDate().toString());
                     pstmt.setString(5, res.getCheckOutDate().toString());
                     pstmt.setInt(6, res.getTotalGuests());
-                    pstmt.setDouble(7, res.getTotalCost().doubleValue());
+                    pstmt.setString(7, res.getTotalCost().toPlainString());
                     pstmt.setString(8, res.getStatus().getDisplayName());
                     pstmt.addBatch();
                 }
@@ -455,6 +510,21 @@ public class SqliteDatabase {
             System.err.println("Error loading reviews from SQLite: " + e.getMessage());
         }
         return reviews;
+    }
+
+    public void saveReview(Review rev) {
+        String sql = "INSERT OR REPLACE INTO reviews (review_id, room_number, username, rating, comment) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, rev.getReviewId());
+            pstmt.setString(2, rev.getRoomNumber());
+            pstmt.setString(3, rev.getUsername());
+            pstmt.setInt(4, rev.getRating());
+            pstmt.setString(5, rev.getComment());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error saving review to SQLite: " + e.getMessage());
+        }
     }
 
     public void saveReviews(List<Review> reviews) {

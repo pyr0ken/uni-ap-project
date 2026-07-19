@@ -24,6 +24,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 public class HotelService {
@@ -32,6 +34,7 @@ public class HotelService {
     private final List<Room> rooms;
     private final List<Reservation> reservations;
     private final List<Review> reviews;
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     public HotelService() {
         this.db = new SqliteDatabase();
@@ -45,41 +48,56 @@ public class HotelService {
     }
 
     // --- Authentication ---
-    public synchronized boolean registerUser(String username, String password, String firstName, String lastName) {
-        if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
-            return false;
-        }
-        username = username.trim();
-        for (User u : users) {
-            if (u.getUsername().equalsIgnoreCase(username)) {
+    public boolean registerUser(String username, String password, String firstName, String lastName) {
+        lock.writeLock().lock();
+        try {
+            if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
                 return false;
             }
+            username = username.trim();
+            for (User u : users) {
+                if (u.getUsername().equalsIgnoreCase(username)) {
+                    return false;
+                }
+            }
+            String hashedPassword = PasswordUtil.hashPassword(password);
+            User newUser = new User(username, hashedPassword, firstName, lastName, new BigDecimal("1000.00"));
+            users.add(newUser);
+            db.saveUsers(users);
+            return true;
+        } finally {
+            lock.writeLock().unlock();
         }
-        String hashedPassword = PasswordUtil.hashPassword(password);
-        User newUser = new User(username, hashedPassword, firstName, lastName, new BigDecimal("1000.00"));
-        users.add(newUser);
-        db.saveUsers(users);
-        return true;
     }
 
-    public synchronized User loginUser(String username, String password) {
-        if (username == null || password == null) return null;
-        for (User u : users) {
-            if (u.getUsername().equalsIgnoreCase(username.trim()) && PasswordUtil.verifyPassword(password, u.getPassword())) {
-                return u;
+    public User loginUser(String username, String password) {
+        lock.readLock().lock();
+        try {
+            if (username == null || password == null) return null;
+            for (User u : users) {
+                if (u.getUsername().equalsIgnoreCase(username.trim()) && PasswordUtil.verifyPassword(password, u.getPassword())) {
+                    return u;
+                }
             }
+            return null;
+        } finally {
+            lock.readLock().unlock();
         }
-        return null;
     }
 
-    public synchronized void addCredit(String username, BigDecimal amount) {
-        if (amount.signum() <= 0) return;
-        for (User u : users) {
-            if (u.getUsername().equalsIgnoreCase(username)) {
-                u.addCredit(amount);
-                db.saveUsers(users);
-                break;
+    public void addCredit(String username, BigDecimal amount) {
+        lock.writeLock().lock();
+        try {
+            if (amount.signum() <= 0) return;
+            for (User u : users) {
+                if (u.getUsername().equalsIgnoreCase(username)) {
+                    u.addCredit(amount);
+                    db.saveUsers(users);
+                    break;
+                }
             }
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 
@@ -156,95 +174,95 @@ public class HotelService {
     }
 
     // --- Bookings & Reservation Actions ---
-    public synchronized List<Reservation> makeReservations(String username, List<String> roomNumbers,
-                                                           LocalDate checkIn, LocalDate checkOut, int guestCount)
+    public List<Reservation> makeReservations(String username, List<String> roomNumbers,
+                                               LocalDate checkIn, LocalDate checkOut, int guestCount)
             throws InvalidBookingDatesException, RoomUnavailableException, InsufficientCreditException {
-        
-        // 1. Validation checks
-        if (checkIn == null || checkOut == null) {
-            throw new InvalidBookingDatesException("Check-in and Check-out dates must be selected.");
-        }
-        if (!checkIn.isAfter(LocalDate.now().minusDays(1))) {
-            throw new InvalidBookingDatesException("Check-in date cannot be in the past.");
-        }
-        if (!checkOut.isAfter(checkIn)) {
-            throw new InvalidBookingDatesException("Check-out date must be after the Check-in date.");
-        }
-        if (roomNumbers == null || roomNumbers.isEmpty()) {
-            throw new RoomUnavailableException("No rooms selected for booking.");
-        }
-
-        // Find User
-        User user = null;
-        for (User u : users) {
-            if (u.getUsername().equalsIgnoreCase(username)) {
-                user = u;
-                break;
+        lock.writeLock().lock();
+        try {
+            // 1. Validation checks
+            if (checkIn == null || checkOut == null) {
+                throw new InvalidBookingDatesException("Check-in and Check-out dates must be selected.");
             }
-        }
-        if (user == null) {
-            throw new InvalidBookingDatesException("Authenticated user not found.");
-        }
-
-        // 2. Room availability check and cost calculation
-        BigDecimal totalBookingCost = BigDecimal.ZERO;
-        List<Room> selectedRooms = new ArrayList<>();
-        
-        for (String roomNum : roomNumbers) {
-            Room r = rooms.stream().filter(room -> room.getRoomNumber().equals(roomNum)).findFirst().orElse(null);
-            if (r == null) {
-                throw new RoomUnavailableException("Room " + roomNum + " does not exist.");
+            if (!checkIn.isAfter(LocalDate.now().minusDays(1))) {
+                throw new InvalidBookingDatesException("Check-in date cannot be in the past.");
             }
-            if (!isRoomAvailable(roomNum, checkIn, checkOut)) {
-                throw new RoomUnavailableException("Room " + roomNum + " is already booked for the selected timeframe.");
+            if (!checkOut.isAfter(checkIn)) {
+                throw new InvalidBookingDatesException("Check-out date must be after the Check-in date.");
             }
-            selectedRooms.add(r);
-            totalBookingCost = totalBookingCost.add(calculateTotalCost(r, checkIn, checkOut));
-        }
+            if (roomNumbers == null || roomNumbers.isEmpty()) {
+                throw new RoomUnavailableException("No rooms selected for booking.");
+            }
 
-        // 3. Credit check
-        if (user.getCredit().compareTo(totalBookingCost) < 0) {
-            throw new InsufficientCreditException(String.format("Insufficient credit. Total Cost: $%s, Your Credit: $%s",
-                    totalBookingCost.toPlainString(), user.getCredit().toPlainString()));
-        }
+            // Find User
+            User user = null;
+            for (User u : users) {
+                if (u.getUsername().equalsIgnoreCase(username)) {
+                    user = u;
+                    break;
+                }
+            }
+            if (user == null) {
+                throw new InvalidBookingDatesException("Authenticated user not found.");
+            }
 
-        // 4. Save and process reservations
-        user.deductCredit(totalBookingCost);
-        db.saveUsers(users);
-
-        List<Reservation> createdReservations = new ArrayList<>();
-        for (Room room : selectedRooms) {
-            String reservationId = "RES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-            BigDecimal roomCost = calculateTotalCost(room, checkIn, checkOut);
+            // 2. Room availability check and cost calculation
+            BigDecimal totalBookingCost = BigDecimal.ZERO;
+            List<Room> selectedRooms = new ArrayList<>();
             
-            // Assign guests proportionally or max allowed for the room
+            for (String roomNum : roomNumbers) {
+                Room r = rooms.stream().filter(room -> room.getRoomNumber().equals(roomNum)).findFirst().orElse(null);
+                if (r == null) {
+                    throw new RoomUnavailableException("Room " + roomNum + " does not exist.");
+                }
+                if (!isRoomAvailable(roomNum, checkIn, checkOut)) {
+                    throw new RoomUnavailableException("Room " + roomNum + " is already booked for the selected timeframe.");
+                }
+                selectedRooms.add(r);
+                totalBookingCost = totalBookingCost.add(calculateTotalCost(r, checkIn, checkOut));
+            }
+
+            // 3. Credit check
+            if (user.getCredit().compareTo(totalBookingCost) < 0) {
+                throw new InsufficientCreditException(String.format("Insufficient credit. Total Cost: $%s, Your Credit: $%s",
+                        totalBookingCost.toPlainString(), user.getCredit().toPlainString()));
+            }
+
+            // 4. Save and process reservations
+            user.deductCredit(totalBookingCost);
+            db.saveUsers(users);
+
+            List<Reservation> createdReservations = new ArrayList<>();
+            for (Room room : selectedRooms) {
+                String reservationId = "RES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+                BigDecimal roomCost = calculateTotalCost(room, checkIn, checkOut);
+                
+            // Assign guests proportionally, capped at room capacity
             int roomGuests = Math.min(guestCount, room.getCapacity());
             guestCount = Math.max(0, guestCount - roomGuests);
-            // If there are still guests and this is the last room, add the remaining guests to this room
-            if (roomNumIsLast(room.getRoomNumber(), selectedRooms) && guestCount > 0) {
-                roomGuests += guestCount;
-            }
 
-            Reservation res = new Reservation(
-                    reservationId,
-                    username,
-                    room.getRoomNumber(),
-                    checkIn,
-                    checkOut,
-                    roomGuests == 0 ? room.getCapacity() : roomGuests, // Default to capacity if guests is 0
-                    roomCost,
-                    ReservationStatus.ACTIVE
-            );
+                Reservation res = new Reservation(
+                        reservationId,
+                        username,
+                        room.getRoomNumber(),
+                        checkIn,
+                        checkOut,
+                        roomGuests == 0 ? room.getCapacity() : roomGuests, // Default to capacity if guests is 0
+                        roomCost,
+                        ReservationStatus.ACTIVE
+                );
+                
+                reservations.add(res);
+                createdReservations.add(res);
+                
+                // Generate Invoice file
+                generateInvoice(res, user, room);
+            }
             
-            reservations.add(res);
-            createdReservations.add(res);
-            
-            // Generate Invoice file
-            generateInvoice(res, user, room);
+            db.saveReservations(reservations);
+            return createdReservations;
+        } finally {
+            lock.writeLock().unlock();
         }
-        
-        db.saveReservations(reservations);
-        return createdReservations;
     }
 
     private boolean roomNumIsLast(String roomNum, List<Room> selectedRooms) {
@@ -302,42 +320,50 @@ public class HotelService {
     }
 
     // --- Cancellation ---
-    public synchronized BigDecimal cancelReservation(String reservationId) throws HotelException {
-        Reservation res = reservations.stream()
-                .filter(r -> r.getReservationId().equals(reservationId))
-                .findFirst().orElse(null);
+    public BigDecimal cancelReservation(String reservationId) throws HotelException {
+        lock.writeLock().lock();
+        try {
+            Reservation res = reservations.stream()
+                    .filter(r -> r.getReservationId().equals(reservationId))
+                    .findFirst().orElse(null);
 
-        if (res == null) {
-            throw new HotelException("Reservation not found.");
+            if (res == null) {
+                throw new HotelException("Reservation not found.");
+            }
+            if (res.getStatus() != ReservationStatus.ACTIVE) {
+                throw new HotelException("Reservation is already " + res.getStatus().getDisplayName().toLowerCase() + ".");
+            }
+
+            User user = users.stream()
+                    .filter(u -> u.getUsername().equalsIgnoreCase(res.getUsername()))
+                    .findFirst().orElse(null);
+            if (user == null) {
+                throw new HotelException("User associated with booking not found.");
+            }
+
+            long hoursToCheckIn = java.time.temporal.ChronoUnit.HOURS.between(
+                java.time.LocalDateTime.now(), 
+                res.getCheckInDate().atStartOfDay()
+            );
+            BigDecimal refundAmount;
+            if (hoursToCheckIn > 48) {
+                refundAmount = res.getTotalCost();
+            } else {
+                refundAmount = res.getTotalCost().multiply(new BigDecimal("0.50")).setScale(2, RoundingMode.HALF_UP);
+            }
+
+            res.setStatus(ReservationStatus.CANCELLED);
+            user.addCredit(refundAmount);
+
+            db.saveReservations(reservations);
+            db.saveUsers(users);
+
+            updateInvoiceStatus(reservationId, refundAmount);
+
+            return refundAmount;
+        } finally {
+            lock.writeLock().unlock();
         }
-        if (res.getStatus() != ReservationStatus.ACTIVE) {
-            throw new HotelException("Reservation is already " + res.getStatus().getDisplayName().toLowerCase() + ".");
-        }
-
-        User user = users.stream()
-                .filter(u -> u.getUsername().equalsIgnoreCase(res.getUsername()))
-                .findFirst().orElse(null);
-        if (user == null) {
-            throw new HotelException("User associated with booking not found.");
-        }
-
-        long daysToCheckIn = ChronoUnit.DAYS.between(LocalDate.now(), res.getCheckInDate());
-        BigDecimal refundAmount;
-        if (daysToCheckIn >= 2) {
-            refundAmount = res.getTotalCost();
-        } else {
-            refundAmount = res.getTotalCost().multiply(new BigDecimal("0.50")).setScale(2, RoundingMode.HALF_UP);
-        }
-
-        res.setStatus(ReservationStatus.CANCELLED);
-        user.addCredit(refundAmount);
-
-        db.saveReservations(reservations);
-        db.saveUsers(users);
-
-        updateInvoiceStatus(reservationId, refundAmount);
-
-        return refundAmount;
     }
 
     private void updateInvoiceStatus(String reservationId, BigDecimal refundAmount) {
@@ -346,7 +372,7 @@ public class HotelService {
             try {
                 List<String> lines = Files.readAllLines(Paths.get(invoicePath));
                 for (int i = 0; i < lines.size(); i++) {
-                    if (lines.get(i).contains("Status         :")) {
+                    if (lines.get(i).matches(".*Status\\s+:.*")) {
                         lines.set(i, " Status         : CANCELLED (Refunded $" + refundAmount.toPlainString() + ")");
                     }
                 }
@@ -358,22 +384,27 @@ public class HotelService {
     }
 
     // --- Auto-Complete Past Bookings ---
-    public synchronized void autoCompleteReservations() {
-        boolean modified = false;
-        LocalDate today = LocalDate.now();
-        for (Reservation res : reservations) {
-            if (res.getStatus() == ReservationStatus.ACTIVE) {
-                // If today is equal to or after check-out date, it's completed
-                if (!today.isBefore(res.getCheckOutDate())) {
-                    res.setStatus(ReservationStatus.COMPLETED);
-                    modified = true;
-                    // Update invoice status too
-                    updateInvoiceToCompleted(res.getReservationId());
+    public void autoCompleteReservations() {
+        lock.writeLock().lock();
+        try {
+            boolean modified = false;
+            LocalDate today = LocalDate.now();
+            for (Reservation res : reservations) {
+                if (res.getStatus() == ReservationStatus.ACTIVE) {
+                    // If today is equal to or after check-out date, it's completed
+                    if (!today.isBefore(res.getCheckOutDate())) {
+                        res.setStatus(ReservationStatus.COMPLETED);
+                        modified = true;
+                        // Update invoice status too
+                        updateInvoiceToCompleted(res.getReservationId());
+                    }
                 }
             }
-        }
-        if (modified) {
-            db.saveReservations(reservations);
+            if (modified) {
+                db.saveReservations(reservations);
+            }
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 
@@ -383,7 +414,7 @@ public class HotelService {
             try {
                 List<String> lines = Files.readAllLines(Paths.get(invoicePath));
                 for (int i = 0; i < lines.size(); i++) {
-                    if (lines.get(i).contains("Status         :")) {
+                    if (lines.get(i).matches(".*Status\\s+:.*")) {
                         lines.set(i, " Status         : COMPLETED");
                     }
                 }
@@ -396,58 +427,85 @@ public class HotelService {
 
     // --- Active Bookings Reminders ---
     public List<Reservation> getCheckInReminders(String username) {
-        LocalDate today = LocalDate.now();
-        return reservations.stream().filter(res -> 
-                res.getUsername().equalsIgnoreCase(username) &&
-                res.getStatus() == ReservationStatus.ACTIVE &&
-                (res.getCheckInDate().equals(today) || res.getCheckInDate().equals(today.plusDays(1)))
-        ).collect(Collectors.toList());
+        lock.readLock().lock();
+        try {
+            LocalDate today = LocalDate.now();
+            return reservations.stream().filter(res -> 
+                    res.getUsername().equalsIgnoreCase(username) &&
+                    res.getStatus() == ReservationStatus.ACTIVE &&
+                    (res.getCheckInDate().equals(today) || res.getCheckInDate().equals(today.plusDays(1)))
+            ).collect(Collectors.toList());
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     // --- Reviews & Ratings ---
-    public synchronized Review addReview(String roomNumber, String username, int rating, String comment) throws HotelException {
-        if (rating < 1 || rating > 5) {
-            throw new HotelException("Rating must be between 1 and 5.");
-        }
-        // Verify user had a Completed reservation for this room
-        boolean hadStay = reservations.stream().anyMatch(res ->
-                res.getUsername().equalsIgnoreCase(username) &&
-                res.getRoomNumber().equals(roomNumber) &&
-                res.getStatus() == ReservationStatus.COMPLETED
-        );
+    public Review addReview(String roomNumber, String username, int rating, String comment) throws HotelException {
+        lock.writeLock().lock();
+        try {
+            if (rating < 1 || rating > 5) {
+                throw new HotelException("Rating must be between 1 and 5.");
+            }
+            // Verify user had a Completed reservation for this room
+            boolean hadStay = reservations.stream().anyMatch(res ->
+                    res.getUsername().equalsIgnoreCase(username) &&
+                    res.getRoomNumber().equals(roomNumber) &&
+                    res.getStatus() == ReservationStatus.COMPLETED
+            );
 
-        if (!hadStay) {
-            throw new HotelException("You can only review rooms where you have completed a stay.");
-        }
+            if (!hadStay) {
+                throw new HotelException("You can only review rooms where you have completed a stay.");
+            }
 
-        // Generate unique review ID
-        String reviewId = "REV-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        Review review = new Review(reviewId, roomNumber, username, rating, comment);
-        
-        reviews.add(review);
-        db.saveReviews(reviews);
-        return review;
+            // Generate unique review ID
+            String reviewId = "REV-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            Review review = new Review(reviewId, roomNumber, username, rating, comment);
+            
+            reviews.add(review);
+            db.saveReviews(reviews);
+            return review;
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     public List<Review> getRoomReviews(String roomNumber) {
-        return reviews.stream()
-                .filter(rev -> rev.getRoomNumber().equals(roomNumber))
-                .collect(Collectors.toList());
+        lock.readLock().lock();
+        try {
+            return reviews.stream()
+                    .filter(rev -> rev.getRoomNumber().equals(roomNumber))
+                    .collect(Collectors.toList());
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     public double getRoomAverageRating(String roomNumber) {
-        List<Review> roomReviews = getRoomReviews(roomNumber);
-        if (roomReviews.isEmpty()) return 0.0;
-        double sum = 0;
-        for (Review r : roomReviews) {
-            sum += r.getRating();
+        lock.readLock().lock();
+        try {
+            List<Review> roomReviews = reviews.stream()
+                    .filter(rev -> rev.getRoomNumber().equals(roomNumber))
+                    .collect(Collectors.toList());
+            if (roomReviews.isEmpty()) return 0.0;
+            double sum = 0;
+            for (Review r : roomReviews) {
+                sum += r.getRating();
+            }
+            return sum / roomReviews.size();
+        } finally {
+            lock.readLock().unlock();
         }
-        return sum / roomReviews.size();
     }
 
     public List<Reservation> getUserReservations(String username) {
-        return reservations.stream()
-                .filter(res -> res.getUsername().equalsIgnoreCase(username))
-                .collect(Collectors.toList());
+        lock.readLock().lock();
+        try {
+            return reservations.stream()
+                    .filter(res -> res.getUsername().equalsIgnoreCase(username))
+                    .collect(Collectors.toList());
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 }
