@@ -19,27 +19,28 @@ public class MainFrame extends JFrame {
     private DashboardPanel dashboardPanel;
 
     public MainFrame() {
+        try {
+            UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+        } catch (Exception ignored) {}
+        Theme.installDefaults();
+
         this.service = new HotelService();
         this.cardLayout = new CardLayout();
         this.cards = new JPanel(cardLayout);
 
-        setTitle("Grand Luxe Hotel & Residence Reservation");
+        setTitle("Grand Luxe | Hotel Reservations");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1100, 750);
-        setMinimumSize(new Dimension(950, 650));
+        setSize(1200, 800);
+        setMinimumSize(new Dimension(1000, 680));
         setLocationRelativeTo(null);
         getContentPane().setBackground(Theme.BG_PRIMARY);
-
-        // Customize standard Swing components to look dark/modern globally
-        try {
-            UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-        } catch (Exception ignored) {}
         
         initViews();
         showLogin();
     }
 
     private void initViews() {
+        cards.setBackground(Theme.BG_PRIMARY);
         loginPanel = new LoginPanel(this);
         registerPanel = new RegisterPanel(this);
         

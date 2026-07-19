@@ -58,8 +58,9 @@ public class CreditPanel extends JPanel {
         dGbc.insets = new Insets(0, 0, 15, 0);
         displayCard.add(lblDisplayTitle, dGbc);
 
-        JLabel lblWallet = new JLabel("💳", JLabel.CENTER);
-        lblWallet.setFont(new Font("SansSerif", Font.PLAIN, 72));
+        JLabel lblWallet = new JLabel("$", JLabel.CENTER);
+        lblWallet.setFont(new Font("SansSerif", Font.BOLD, 62));
+        lblWallet.setForeground(Theme.WARNING);
         dGbc.gridy = 1;
         displayCard.add(lblWallet, dGbc);
 
@@ -70,7 +71,7 @@ public class CreditPanel extends JPanel {
         dGbc.insets = new Insets(15, 0, 15, 0);
         displayCard.add(lblBalance, dGbc);
 
-        JLabel lblMeta = new JLabel("Use credit to book rooms instantly. 100% secure payments.", JLabel.CENTER);
+        JLabel lblMeta = new JLabel("Use your balance to confirm bookings instantly.", JLabel.CENTER);
         lblMeta.setFont(Theme.FONT_CAPTION);
         lblMeta.setForeground(Theme.TEXT_MUTED);
         dGbc.gridy = 3;
@@ -94,7 +95,7 @@ public class CreditPanel extends JPanel {
         fGbc.weightx = 1.0;
         fGbc.gridx = 0;
 
-        JLabel lblFormTitle = new JLabel("Simulated Financial Credit Increase");
+        JLabel lblFormTitle = new JLabel("Add Account Credit");
         lblFormTitle.setFont(Theme.FONT_SUBTITLE);
         lblFormTitle.setForeground(Theme.WARNING);
         fGbc.gridy = 0;
@@ -104,7 +105,7 @@ public class CreditPanel extends JPanel {
         fGbc.insets = new Insets(4, 0, 4, 0);
 
         // Amount to add
-        JLabel lblAmount = new JLabel("Refill Amount ($)");
+        JLabel lblAmount = new JLabel("Amount to Add ($)");
         lblAmount.setFont(Theme.FONT_BODY_BOLD);
         lblAmount.setForeground(Theme.TEXT_SECONDARY);
         fGbc.gridy = 1;
@@ -178,7 +179,7 @@ public class CreditPanel extends JPanel {
         formCard.add(lblError, fGbc);
 
         // Process button
-        JButton btnPay = new JButton("Confirm Simulated Recharge");
+        JButton btnPay = new JButton("Add Credit");
         Theme.styleButton(btnPay, Theme.ACCENT, Theme.TEXT_PRIMARY);
         fGbc.gridy = 9;
         fGbc.insets = new Insets(10, 0, 0, 0);

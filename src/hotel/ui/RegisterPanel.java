@@ -22,28 +22,32 @@ public class RegisterPanel extends JPanel {
     private void initComponent() {
         GridBagConstraints gbc = new GridBagConstraints();
         
-        // Register Card Panel
-        Theme.RoundedPanel card = new Theme.RoundedPanel(24, Theme.BG_SECONDARY);
+        Theme.RoundedPanel card = new Theme.RoundedPanel(12, Theme.BG_SECONDARY);
         card.setLayout(new GridBagLayout());
         card.setBorder(BorderFactory.createEmptyBorder(30, 45, 30, 45));
-        card.setPreferredSize(new Dimension(480, 560));
+        card.setPreferredSize(new Dimension(500, 570));
 
         GridBagConstraints cardGbc = new GridBagConstraints();
         cardGbc.fill = GridBagConstraints.HORIZONTAL;
         cardGbc.insets = new Insets(6, 0, 6, 0);
         cardGbc.gridx = 0;
 
-        // Logo & Title
+        JLabel lblEyebrow = new JLabel("GRAND LUXE", JLabel.CENTER);
+        lblEyebrow.setFont(Theme.FONT_CAPTION);
+        lblEyebrow.setForeground(Theme.WARNING);
+        cardGbc.gridy = 0;
+        card.add(lblEyebrow, cardGbc);
+
         JLabel lblTitle = new JLabel("Create Account", JLabel.CENTER);
         lblTitle.setFont(Theme.FONT_TITLE);
-        lblTitle.setForeground(Theme.WARNING);
-        cardGbc.gridy = 0;
+        lblTitle.setForeground(Theme.ACCENT);
+        cardGbc.gridy = 1;
         card.add(lblTitle, cardGbc);
 
         JLabel lblSubtitle = new JLabel("Join Grand Luxe Hotel & Residence", JLabel.CENTER);
         lblSubtitle.setFont(Theme.FONT_CAPTION);
         lblSubtitle.setForeground(Theme.TEXT_SECONDARY);
-        cardGbc.gridy = 1;
+        cardGbc.gridy = 2;
         cardGbc.insets = new Insets(0, 0, 20, 0);
         card.add(lblSubtitle, cardGbc);
 
@@ -77,57 +81,57 @@ public class RegisterPanel extends JPanel {
         namePanel.add(fnWrapper);
         namePanel.add(lnWrapper);
         
-        cardGbc.gridy = 2;
+        cardGbc.gridy = 3;
         card.add(namePanel, cardGbc);
 
         // Username
         JLabel lblUsername = new JLabel("Username");
         lblUsername.setFont(Theme.FONT_BODY_BOLD);
         lblUsername.setForeground(Theme.TEXT_SECONDARY);
-        cardGbc.gridy = 3;
+        cardGbc.gridy = 4;
         card.add(lblUsername, cardGbc);
 
         txtUsername = new JTextField();
         Theme.styleTextField(txtUsername);
-        cardGbc.gridy = 4;
+        cardGbc.gridy = 5;
         card.add(txtUsername, cardGbc);
 
         // Password
         JLabel lblPassword = new JLabel("Password");
         lblPassword.setFont(Theme.FONT_BODY_BOLD);
         lblPassword.setForeground(Theme.TEXT_SECONDARY);
-        cardGbc.gridy = 5;
+        cardGbc.gridy = 6;
         card.add(lblPassword, cardGbc);
 
         txtPassword = new JPasswordField();
         Theme.styleTextField(txtPassword);
-        cardGbc.gridy = 6;
+        cardGbc.gridy = 7;
         card.add(txtPassword, cardGbc);
 
         // Error message label
         lblError = new JLabel(" ", JLabel.CENTER);
         lblError.setFont(Theme.FONT_CAPTION);
         lblError.setForeground(Theme.DANGER);
-        cardGbc.gridy = 7;
+        cardGbc.gridy = 8;
         cardGbc.insets = new Insets(5, 0, 5, 0);
         card.add(lblError, cardGbc);
 
         // Register Button
         JButton btnRegister = new JButton("Register");
         Theme.styleButton(btnRegister, Theme.ACCENT, Theme.TEXT_PRIMARY);
-        cardGbc.gridy = 8;
+        cardGbc.gridy = 9;
         cardGbc.insets = new Insets(10, 0, 10, 0);
         card.add(btnRegister, cardGbc);
 
         // Back to Login Link
-        JButton btnBack = new JButton("Already have an account? Sign In");
+        JButton btnBack = new JButton("Already have an account? Sign in");
         btnBack.setFont(Theme.FONT_CAPTION);
         btnBack.setForeground(Theme.ACCENT);
         btnBack.setContentAreaFilled(false);
         btnBack.setBorderPainted(false);
         btnBack.setFocusPainted(false);
         btnBack.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        cardGbc.gridy = 9;
+        cardGbc.gridy = 10;
         cardGbc.insets = new Insets(5, 0, 0, 0);
         card.add(btnBack, cardGbc);
 

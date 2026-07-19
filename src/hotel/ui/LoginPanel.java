@@ -22,31 +22,30 @@ public class LoginPanel extends JPanel {
     private void initComponent() {
         GridBagConstraints gbc = new GridBagConstraints();
         
-        // Login Card Panel
-        Theme.RoundedPanel card = new Theme.RoundedPanel(24, Theme.BG_SECONDARY);
+        Theme.RoundedPanel card = new Theme.RoundedPanel(12, Theme.BG_SECONDARY);
         card.setLayout(new GridBagLayout());
-        card.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
-        card.setPreferredSize(new Dimension(450, 480));
+        card.setBorder(BorderFactory.createEmptyBorder(38, 48, 38, 48));
+        card.setPreferredSize(new Dimension(440, 500));
 
         GridBagConstraints cardGbc = new GridBagConstraints();
         cardGbc.fill = GridBagConstraints.HORIZONTAL;
         cardGbc.insets = new Insets(8, 0, 8, 0);
         cardGbc.gridx = 0;
 
-        // Logo/Title
-        JLabel lblLogoIcon = new JLabel("🏨", JLabel.CENTER);
-        lblLogoIcon.setFont(new Font("SansSerif", Font.PLAIN, 48));
+        JLabel lblLogoIcon = new JLabel("WELCOME TO", JLabel.CENTER);
+        lblLogoIcon.setFont(Theme.FONT_CAPTION);
+        lblLogoIcon.setForeground(Theme.WARNING);
         cardGbc.gridy = 0;
         card.add(lblLogoIcon, cardGbc);
 
         JLabel lblTitle = new JLabel("GRAND LUXE", JLabel.CENTER);
         lblTitle.setFont(Theme.FONT_TITLE_LARGE);
-        lblTitle.setForeground(Theme.WARNING);
+        lblTitle.setForeground(Theme.ACCENT);
         cardGbc.gridy = 1;
         card.add(lblTitle, cardGbc);
 
-        JLabel lblSubtitle = new JLabel("HOTEL & RESIDENCE", JLabel.CENTER);
-        lblSubtitle.setFont(Theme.FONT_CAPTION);
+        JLabel lblSubtitle = new JLabel("Sign in to plan your next stay", JLabel.CENTER);
+        lblSubtitle.setFont(Theme.FONT_BODY);
         lblSubtitle.setForeground(Theme.TEXT_SECONDARY);
         cardGbc.gridy = 2;
         cardGbc.insets = new Insets(0, 0, 25, 0);
@@ -86,14 +85,14 @@ public class LoginPanel extends JPanel {
         card.add(lblError, cardGbc);
 
         // Login Button
-        JButton btnLogin = new JButton("Login");
+        JButton btnLogin = new JButton("Sign In");
         Theme.styleButton(btnLogin, Theme.ACCENT, Theme.TEXT_PRIMARY);
         cardGbc.gridy = 8;
         cardGbc.insets = new Insets(15, 0, 10, 0);
         card.add(btnLogin, cardGbc);
 
         // Register Link Button
-        JButton btnRegisterLink = new JButton("Don't have an account? Sign Up");
+        JButton btnRegisterLink = new JButton("New to Grand Luxe? Create an account");
         btnRegisterLink.setFont(Theme.FONT_CAPTION);
         btnRegisterLink.setForeground(Theme.ACCENT);
         btnRegisterLink.setContentAreaFilled(false);
