@@ -4,6 +4,18 @@ This is a premium, fully-featured Java Swing Graphical User Interface (GUI) desk
 
 ---
 
+## 📸 Screenshots
+
+| Login Page | Explore Rooms |
+|------------|---------------|
+| ![Login Page](docs/login-page.png) | ![Explore Rooms](docs/explor-rooms.png) |
+
+| My Reservations | Account Credit |
+|-----------------|----------------|
+| ![My Reservations](docs/my-reservations.png) | ![Account Credit](docs/account-credit.png) |
+
+---
+
 ## ⚙️ Features Implemented
 
 ### 👤 User Registration & Authentication
@@ -61,24 +73,24 @@ This is a premium, fully-featured Java Swing Graphical User Interface (GUI) desk
 The project adheres to high-quality OOP design principles (Inheritance, Encapsulation, Polymorphism):
 
 - **`hotel.model` (Models):**
-  - [User.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/model/User.java) - Holds name, username, password, credit. Encapsulates credit mutations.
-  - [Room.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/model/Room.java) - Details room number, type, capacity, amenities list.
-  - [Reservation.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/model/Reservation.java) - Records booking metadata, check-in/out dates, and status enum.
-  - [Review.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/model/Review.java) - Encapsulates user reviews and ratings.
+  - [User.java](src/hotel/model/User.java) - Holds name, username, password, credit. Encapsulates credit mutations.
+  - [Room.java](src/hotel/model/Room.java) - Details room number, type, capacity, amenities list.
+  - [Reservation.java](src/hotel/model/Reservation.java) - Records booking metadata, check-in/out dates, and status enum.
+  - [Review.java](src/hotel/model/Review.java) - Encapsulates user reviews and ratings.
 - **`hotel.db` (Database):**
-  - [SqliteDatabase.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/db/SqliteDatabase.java) - Handles database tables initialization, SQLite JDBC connection, automated data migration from .txt files, and CRUD operations.
+  - [SqliteDatabase.java](src/hotel/db/SqliteDatabase.java) - Handles database tables initialization, SQLite JDBC connection, automated data migration from .txt files, and CRUD operations.
 - **`hotel.service` (Business Logic):**
-  - [HotelService.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/service/HotelService.java) - Centralized logic: overlap validation, early booking discounts, cancellation refunds, invoice creation, and user management.
+  - [HotelService.java](src/hotel/service/HotelService.java) - Centralized logic: overlap validation, early booking discounts, cancellation refunds, invoice creation, and user management.
 - **`hotel.exception` (Exceptions):**
   - Custom exceptions (`HotelException`, `InsufficientCreditException`, `RoomUnavailableException`, `InvalidBookingDatesException`) ensure errors are handled robustly.
 - **`hotel.ui` (Graphical Interface):**
-  - [Theme.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/ui/Theme.java) - Standardizes dark-mode colors, fonts, hover animations, and custom borders.
-  - [MainFrame.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/ui/MainFrame.java) - Application shell, session state tracker, and view switcher.
-  - [LoginPanel.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/ui/LoginPanel.java) & [RegisterPanel.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/ui/RegisterPanel.java) - Authentication screens.
-  - [DashboardPanel.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/ui/DashboardPanel.java) - Left sidebar navigations and right panel switcher.
-  - [RoomsPanel.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/ui/RoomsPanel.java) - Interactive room grids and multi-booking logic.
-  - [BookingsPanel.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/ui/BookingsPanel.java) - Booking cards, cancel requests, review modals, and invoice file viewer.
-  - [CreditPanel.java](file:///home/omid/Code/study/ap/hotel-reservation-system/src/hotel/ui/CreditPanel.java) - Recharge checkout form.
+  - [Theme.java](src/hotel/ui/Theme.java) - Standardizes dark-mode colors, fonts, hover animations, and custom borders.
+  - [MainFrame.java](src/hotel/ui/MainFrame.java) - Application shell, session state tracker, and view switcher.
+  - [LoginPanel.java](src/hotel/ui/LoginPanel.java) & [RegisterPanel.java](src/hotel/ui/RegisterPanel.java) - Authentication screens.
+  - [DashboardPanel.java](src/hotel/ui/DashboardPanel.java) - Left sidebar navigations and right panel switcher.
+  - [RoomsPanel.java](src/hotel/ui/RoomsPanel.java) - Interactive room grids and multi-booking logic.
+  - [BookingsPanel.java](src/hotel/ui/BookingsPanel.java) - Booking cards, cancel requests, review modals, and invoice file viewer.
+  - [CreditPanel.java](src/hotel/ui/CreditPanel.java) - Recharge checkout form.
 
 ---
 
