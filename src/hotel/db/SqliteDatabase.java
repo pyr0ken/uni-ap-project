@@ -358,6 +358,18 @@ public class SqliteDatabase {
         }
     }
 
+    public void updateUserPassword(String username, String newHash) {
+        String sql = "UPDATE users SET password = ? WHERE username = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, newHash);
+            pstmt.setString(2, username);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error updating user password: " + e.getMessage());
+        }
+    }
+
     // --- Rooms DB operations ---
     public List<Room> loadRooms() {
         List<Room> rooms = new ArrayList<>();

@@ -71,17 +71,21 @@ public class HotelService {
     }
 
     public User loginUser(String username, String password) {
-        lock.readLock().lock();
+        lock.writeLock().lock();
         try {
             if (username == null || password == null) return null;
             for (User u : users) {
                 if (u.getUsername().equalsIgnoreCase(username.trim()) && PasswordUtil.verifyPassword(password, u.getPassword())) {
+                    if (PasswordUtil.needsRehash(u.getPassword())) {
+                        String newHash = PasswordUtil.hashPassword(password);
+                        db.updateUserPassword(u.getUsername(), newHash);
+                    }
                     return u;
                 }
             }
             return null;
         } finally {
-            lock.readLock().unlock();
+            lock.writeLock().unlock();
         }
     }
 
