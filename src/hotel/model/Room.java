@@ -3,6 +3,7 @@ package hotel.model;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class Room {
@@ -31,11 +32,11 @@ public class Room {
         }
     }
 
-    private String roomNumber;
-    private RoomType type;
-    private BigDecimal pricePerNight;
-    private List<String> amenities;
-    private int capacity;
+    private final String roomNumber;
+    private final RoomType type;
+    private final BigDecimal pricePerNight;
+    private final List<String> amenities;
+    private final int capacity;
 
     public Room(String roomNumber, RoomType type, BigDecimal pricePerNight, List<String> amenities, int capacity) {
         this.roomNumber = roomNumber;
@@ -49,40 +50,20 @@ public class Room {
         return roomNumber;
     }
 
-    public void setRoomNumber(String roomNumber) {
-        this.roomNumber = roomNumber;
-    }
-
     public RoomType getType() {
         return type;
-    }
-
-    public void setType(RoomType type) {
-        this.type = type;
     }
 
     public BigDecimal getPricePerNight() {
         return pricePerNight;
     }
 
-    public void setPricePerNight(BigDecimal pricePerNight) {
-        this.pricePerNight = pricePerNight;
-    }
-
     public List<String> getAmenities() {
-        return amenities;
-    }
-
-    public void setAmenities(List<String> amenities) {
-        this.amenities = amenities;
+        return Collections.unmodifiableList(amenities);
     }
 
     public int getCapacity() {
         return capacity;
-    }
-
-    public void setCapacity(int capacity) {
-        this.capacity = capacity;
     }
 
     public String getAmenitiesString() {

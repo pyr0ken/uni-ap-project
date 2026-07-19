@@ -29,13 +29,13 @@ public class Reservation {
         }
     }
 
-    private String reservationId;
-    private String username;
-    private String roomNumber;
-    private LocalDate checkInDate;
-    private LocalDate checkOutDate;
-    private int totalGuests;
-    private BigDecimal totalCost;
+    private final String reservationId;
+    private final String username;
+    private final String roomNumber;
+    private final LocalDate checkInDate;
+    private final LocalDate checkOutDate;
+    private final int totalGuests;
+    private final BigDecimal totalCost;
     private ReservationStatus status;
 
     public Reservation(String reservationId, String username, String roomNumber, LocalDate checkInDate, LocalDate checkOutDate, int totalGuests, BigDecimal totalCost, ReservationStatus status) {
@@ -53,56 +53,28 @@ public class Reservation {
         return reservationId;
     }
 
-    public void setReservationId(String reservationId) {
-        this.reservationId = reservationId;
-    }
-
     public String getUsername() {
         return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
     }
 
     public String getRoomNumber() {
         return roomNumber;
     }
 
-    public void setRoomNumber(String roomNumber) {
-        this.roomNumber = roomNumber;
-    }
-
     public LocalDate getCheckInDate() {
         return checkInDate;
-    }
-
-    public void setCheckInDate(LocalDate checkInDate) {
-        this.checkInDate = checkInDate;
     }
 
     public LocalDate getCheckOutDate() {
         return checkOutDate;
     }
 
-    public void setCheckOutDate(LocalDate checkOutDate) {
-        this.checkOutDate = checkOutDate;
-    }
-
     public int getTotalGuests() {
         return totalGuests;
     }
 
-    public void setTotalGuests(int totalGuests) {
-        this.totalGuests = totalGuests;
-    }
-
     public BigDecimal getTotalCost() {
         return totalCost;
-    }
-
-    public void setTotalCost(BigDecimal totalCost) {
-        this.totalCost = totalCost;
     }
 
     public ReservationStatus getStatus() {
