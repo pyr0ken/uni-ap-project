@@ -78,7 +78,7 @@ The project adheres to high-quality OOP design principles (Inheritance, Encapsul
   - [Reservation.java](src/hotel/model/Reservation.java) - Records booking metadata, check-in/out dates, and status enum.
   - [Review.java](src/hotel/model/Review.java) - Encapsulates user reviews and ratings.
 - **`hotel.db` (Database):**
-  - [SqliteDatabase.java](src/hotel/db/SqliteDatabase.java) - Handles database tables initialization, SQLite JDBC connection, automated data migration from .txt files, and CRUD operations.
+  - [SqliteDatabase.java](src/hotel/db/SqliteDatabase.java) - Handles database tables initialization, SQLite JDBC connection, and CRUD operations.
 - **`hotel.service` (Business Logic):**
   - [HotelService.java](src/hotel/service/HotelService.java) - Centralized logic: overlap validation, early booking discounts, cancellation refunds, invoice creation, and user management.
 - **`hotel.exception` (Exceptions):**
@@ -99,8 +99,7 @@ The project adheres to high-quality OOP design principles (Inheritance, Encapsul
 ```text
 hotel-reservation-system/
 ├── data/
-│   ├── hotel.db          # SQLite database containing users, rooms, reservations, reviews
-│   └── *.txt.bak         # Archived original file-based database copies (after auto-migration)
+│   └── hotel.db          # SQLite database containing users, rooms, reservations, reviews
 ├── invoices/             # Automatically populated text invoice receipts
 │   └── invoice_RES-XXXX.txt
 ├── src/

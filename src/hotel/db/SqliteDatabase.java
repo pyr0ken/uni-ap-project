@@ -7,7 +7,7 @@ import hotel.model.Room;
 import hotel.model.Room.RoomType;
 import hotel.model.User;
 
-import java.io.*;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -91,9 +91,6 @@ public class SqliteDatabase {
                     "FOREIGN KEY(username) REFERENCES users(username)" +
                     ")");
 
-            // Migrate text files if they exist and DB tables are empty
-            migrateTextFilesToDb();
-
             // Populate default rooms if table is empty
             if (isTableEmpty("rooms")) {
                 createDefaultRooms();
@@ -123,166 +120,6 @@ public class SqliteDatabase {
             System.err.println("Error checking if table " + tableName + " is empty: " + e.getMessage());
         }
         return true;
-    }
-
-    private void migrateTextFilesToDb() {
-        // Migrate Users
-        File usersFile = new File(DATA_DIR + "/users.txt");
-        if (usersFile.exists() && isTableEmpty("users")) {
-            List<User> users = loadUsersFromTextFile();
-            if (!users.isEmpty()) {
-                saveUsers(users);
-                System.out.println("Migrated " + users.size() + " users from users.txt to SQLite.");
-            }
-            usersFile.renameTo(new File(DATA_DIR + "/users.txt.bak"));
-        }
-
-        // Migrate Rooms
-        File roomsFile = new File(DATA_DIR + "/rooms.txt");
-        if (roomsFile.exists() && isTableEmpty("rooms")) {
-            List<Room> rooms = loadRoomsFromTextFile();
-            if (!rooms.isEmpty()) {
-                saveRooms(rooms);
-                System.out.println("Migrated " + rooms.size() + " rooms from rooms.txt to SQLite.");
-            }
-            roomsFile.renameTo(new File(DATA_DIR + "/rooms.txt.bak"));
-        }
-
-        // Migrate Reservations
-        File resFile = new File(DATA_DIR + "/reservations.txt");
-        if (resFile.exists() && isTableEmpty("reservations")) {
-            List<Reservation> reservations = loadReservationsFromTextFile();
-            if (!reservations.isEmpty()) {
-                saveReservations(reservations);
-                System.out.println("Migrated " + reservations.size() + " reservations from reservations.txt to SQLite.");
-            }
-            resFile.renameTo(new File(DATA_DIR + "/reservations.txt.bak"));
-        }
-
-        // Migrate Reviews
-        File revFile = new File(DATA_DIR + "/reviews.txt");
-        if (revFile.exists() && isTableEmpty("reviews")) {
-            List<Review> reviews = loadReviewsFromTextFile();
-            if (!reviews.isEmpty()) {
-                saveReviews(reviews);
-                System.out.println("Migrated " + reviews.size() + " reviews from reviews.txt to SQLite.");
-            }
-            revFile.renameTo(new File(DATA_DIR + "/reviews.txt.bak"));
-        }
-    }
-
-    private List<User> loadUsersFromTextFile() {
-        String usersFile = DATA_DIR + "/users.txt";
-        List<User> users = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(usersFile))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty()) continue;
-                String[] parts = line.split(";");
-                if (parts.length >= 5) {
-                    try {
-                        BigDecimal credit = new BigDecimal(parts[4]);
-                        users.add(new User(parts[0], parts[1], parts[2], parts[3], credit));
-                    } catch (NumberFormatException e) {
-                        System.err.println("Skipping invalid user line: " + line);
-                    }
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Error reading users.txt: " + e.getMessage());
-        }
-        return users;
-    }
-
-    private List<Room> loadRoomsFromTextFile() {
-        String roomsFile = DATA_DIR + "/rooms.txt";
-        List<Room> rooms = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(roomsFile))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty()) continue;
-                String[] parts = line.split(";");
-                if (parts.length >= 5) {
-                    try {
-                        String roomNum = parts[0];
-                        RoomType type = RoomType.fromString(parts[1]);
-                        BigDecimal price = new BigDecimal(parts[2]);
-                        List<String> amenities = new ArrayList<>();
-                        if (!parts[3].trim().isEmpty()) {
-                            amenities.addAll(Arrays.asList(parts[3].split(",")));
-                        }
-                        int capacity = Integer.parseInt(parts[4]);
-                        rooms.add(new Room(roomNum, type, price, amenities, capacity));
-                    } catch (Exception e) {
-                        System.err.println("Skipping invalid room line: " + line + ". Error: " + e.getMessage());
-                    }
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Error reading rooms.txt: " + e.getMessage());
-        }
-        return rooms;
-    }
-
-    private List<Reservation> loadReservationsFromTextFile() {
-        String reservationsFile = DATA_DIR + "/reservations.txt";
-        List<Reservation> reservations = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(reservationsFile))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty()) continue;
-                String[] parts = line.split(";");
-                if (parts.length >= 8) {
-                    try {
-                        String id = parts[0];
-                        String user = parts[1];
-                        String roomNum = parts[2];
-                        LocalDate checkIn = LocalDate.parse(parts[3]);
-                        LocalDate checkOut = LocalDate.parse(parts[4]);
-                        int guests = Integer.parseInt(parts[5]);
-                        BigDecimal cost = new BigDecimal(parts[6]);
-                        ReservationStatus status = ReservationStatus.fromString(parts[7]);
-                        reservations.add(new Reservation(id, user, roomNum, checkIn, checkOut, guests, cost, status));
-                    } catch (Exception e) {
-                        System.err.println("Skipping invalid reservation line: " + line + ". Error: " + e.getMessage());
-                    }
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Error reading reservations.txt: " + e.getMessage());
-        }
-        return reservations;
-    }
-
-    private List<Review> loadReviewsFromTextFile() {
-        String reviewsFile = DATA_DIR + "/reviews.txt";
-        List<Review> reviews = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(reviewsFile))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty()) continue;
-                String[] parts = line.split(";");
-                if (parts.length >= 5) {
-                    try {
-                        String id = parts[0];
-                        String roomNum = parts[1];
-                        String user = parts[2];
-                        int rating = Integer.parseInt(parts[3]);
-                        String comment = parts[4];
-                        reviews.add(new Review(id, roomNum, user, rating, comment));
-                    } catch (Exception e) {
-                        System.err.println("Skipping invalid review line: " + line + ". Error: " + e.getMessage());
-                    }
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Error reading reviews.txt: " + e.getMessage());
-        }
-        return reviews;
     }
 
     private void createDefaultRooms() {
