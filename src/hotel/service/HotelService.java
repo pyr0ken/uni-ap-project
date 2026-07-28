@@ -139,6 +139,7 @@ public class HotelService {
     }
 
     public boolean isRoomAvailable(String roomNumber, LocalDate checkIn, LocalDate checkOut) {
+        if (checkIn == null || checkOut == null) return false;
         for (Reservation res : reservations) {
             if (res.getRoomNumber().equals(roomNumber) && res.getStatus() == ReservationStatus.ACTIVE) {
                 // Standard overlap condition: checkIn < res.checkOut AND checkOut > res.checkIn
@@ -236,13 +237,21 @@ public class HotelService {
             db.saveUsers(users);
 
             List<Reservation> createdReservations = new ArrayList<>();
+            int remainingGuests = guestCount;
             for (Room room : selectedRooms) {
                 String reservationId = "RES-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
                 BigDecimal roomCost = calculateTotalCost(room, checkIn, checkOut);
                 
-            // Assign guests proportionally, capped at room capacity
-            int roomGuests = Math.min(guestCount, room.getCapacity());
-            guestCount = Math.max(0, guestCount - roomGuests);
+                int roomGuests;
+                if (guestCount <= 0) {
+                    roomGuests = room.getCapacity();
+                } else {
+                    roomGuests = Math.min(remainingGuests, room.getCapacity());
+                    if (roomGuests <= 0) {
+                        roomGuests = 1;
+                    }
+                    remainingGuests = Math.max(0, remainingGuests - roomGuests);
+                }
 
                 Reservation res = new Reservation(
                         reservationId,
@@ -250,7 +259,7 @@ public class HotelService {
                         room.getRoomNumber(),
                         checkIn,
                         checkOut,
-                        roomGuests == 0 ? room.getCapacity() : roomGuests, // Default to capacity if guests is 0
+                        roomGuests,
                         roomCost,
                         ReservationStatus.ACTIVE
                 );
@@ -267,11 +276,6 @@ public class HotelService {
         } finally {
             lock.writeLock().unlock();
         }
-    }
-
-    private boolean roomNumIsLast(String roomNum, List<Room> selectedRooms) {
-        if (selectedRooms.isEmpty()) return false;
-        return selectedRooms.get(selectedRooms.size() - 1).getRoomNumber().equals(roomNum);
     }
 
     // --- Invoice Generation ---
@@ -343,6 +347,10 @@ public class HotelService {
                     .findFirst().orElse(null);
             if (user == null) {
                 throw new HotelException("User associated with booking not found.");
+            }
+
+            if (!LocalDate.now().isBefore(res.getCheckInDate())) {
+                throw new HotelException("Cannot cancel a reservation on or after its check-in date (" + res.getCheckInDate() + ").");
             }
 
             long hoursToCheckIn = java.time.temporal.ChronoUnit.HOURS.between(

@@ -293,6 +293,19 @@ public class RoomsPanel extends JPanel {
             return;
         }
 
+        if (!checkIn.isAfter(LocalDate.now().minusDays(1))) {
+            lblEstimatedTotal.setText("Error: Check-in cannot be in the past");
+            lblEstimatedTotal.setForeground(Theme.DANGER);
+            JOptionPane.showMessageDialog(this, "Check-in date cannot be in the past.", "Invalid Dates", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (!checkOut.isAfter(checkIn)) {
+            lblEstimatedTotal.setText("Error: Check-out must be after Check-in");
+            lblEstimatedTotal.setForeground(Theme.DANGER);
+            JOptionPane.showMessageDialog(this, "Check-out date must be after Check-in date.", "Invalid Dates", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         RoomType type = null;
         String typeSel = (String) cbRoomType.getSelectedItem();
         if (typeSel != null && !typeSel.equals("All Types")) {
@@ -513,6 +526,15 @@ public class RoomsPanel extends JPanel {
             lblEstimatedTotal.setText("Estimated Total: $0.00");
             lblEstimatedTotal.setForeground(Theme.SUCCESS);
             btnBookSelected.setText("Confirm Booking (0 Rooms)");
+            btnBookSelected.setEnabled(false);
+            return;
+        }
+
+        if (checkIn == null || checkOut == null || !checkOut.isAfter(checkIn)) {
+            lblSelectedCount.setText("Selected Rooms: " + new ArrayList<>(selectedRoomNumbers));
+            lblEstimatedTotal.setText("Error: Invalid Stay Dates");
+            lblEstimatedTotal.setForeground(Theme.DANGER);
+            btnBookSelected.setText("Confirm Booking (" + selectedRoomNumbers.size() + " Rooms)");
             btnBookSelected.setEnabled(false);
             return;
         }

@@ -252,11 +252,15 @@ public class DashboardPanel extends JPanel {
     public void refreshUserProfile() {
         User user = mainFrame.getCurrentUser();
         if (user != null) {
-            String initials = (user.getFirstName().substring(0, 1) + user.getLastName().substring(0, 1)).toUpperCase();
+            String fn = (user.getFirstName() != null && !user.getFirstName().trim().isEmpty()) ? user.getFirstName().trim() : user.getUsername();
+            String ln = (user.getLastName() != null && !user.getLastName().trim().isEmpty()) ? user.getLastName().trim() : "";
+            String fnInitial = fn.substring(0, 1).toUpperCase();
+            String lnInitial = !ln.isEmpty() ? ln.substring(0, 1).toUpperCase() : "";
+            String initials = fnInitial + lnInitial;
             String fullName = user.getFirstName() + " " + user.getLastName();
             lblUserInitials.setText(initials);
-            lblUserName.setText(fullName);
-            lblUserName.setToolTipText(fullName);
+            lblUserName.setText(fullName.trim());
+            lblUserName.setToolTipText(fullName.trim());
             lblUserCredit.setText("$" + user.getCredit().toPlainString());
         }
     }
