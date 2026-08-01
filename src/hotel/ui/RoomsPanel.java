@@ -27,9 +27,11 @@ public class RoomsPanel extends JPanel {
     private JTextField txtCheckIn;
     private JTextField txtCheckOut;
     private JComboBox<String> cbRoomType;
+    private JComboBox<String> cbMinRating;
     private JTextField txtMinPrice;
     private JTextField txtMaxPrice;
     private JSpinner spinGuests;
+    private JLabel lblSubtitle;
 
     // Amenities Checkboxes
     private JCheckBox chkTV;
@@ -77,7 +79,7 @@ public class RoomsPanel extends JPanel {
         lblTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         titlePanel.add(lblTitle);
         titlePanel.add(Box.createVerticalStrut(3));
-        JLabel lblSubtitle = new JLabel("Compare available rooms, amenities, and total stay prices.");
+        lblSubtitle = new JLabel("Compare available rooms, amenities, and total stay prices.");
         lblSubtitle.setFont(Theme.FONT_BODY);
         lblSubtitle.setForeground(Theme.TEXT_SECONDARY);
         lblSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -119,7 +121,7 @@ public class RoomsPanel extends JPanel {
         gbc.gridx = 2; gbc.gridy = 1;
         filterGrid.add(cbRoomType, gbc);
 
-        // Row 1: Prices & Guests
+        // Row 1: Prices & Guests & Min Rating
         gbc.gridx = 0; gbc.gridy = 2;
         filterGrid.add(createLabel("Min Price ($)"), gbc);
 
@@ -148,13 +150,22 @@ public class RoomsPanel extends JPanel {
         gbc.gridx = 2; gbc.gridy = 3;
         filterGrid.add(spinGuests, gbc);
 
-        // Row 2: Amenities Title
+        // Row 2: Minimum Rating Filter
         gbc.gridx = 0; gbc.gridy = 4;
+        filterGrid.add(createLabel("Minimum Rating"), gbc);
+
+        cbMinRating = new JComboBox<>(new String[]{"All Ratings", "4.0+ Stars ★★★★", "3.0+ Stars ★★★", "2.0+ Stars ★★", "1.0+ Star ★"});
+        Theme.styleComboBox(cbMinRating);
+        gbc.gridx = 0; gbc.gridy = 5;
+        filterGrid.add(cbMinRating, gbc);
+
+        // Row 3: Amenities Title
+        gbc.gridx = 0; gbc.gridy = 6;
         gbc.gridwidth = 3;
         filterGrid.add(createLabel("Amenities"), gbc);
         gbc.gridwidth = 1;
 
-        // Row 3: Amenities Checkboxes Panel
+        // Row 4: Amenities Checkboxes Panel
         JPanel amenitiesPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         amenitiesPanel.setBackground(Theme.BG_SECONDARY);
         
@@ -172,7 +183,7 @@ public class RoomsPanel extends JPanel {
         amenitiesPanel.add(chkJacuzzi);
         amenitiesPanel.add(chkBalcony);
 
-        gbc.gridx = 0; gbc.gridy = 5;
+        gbc.gridx = 0; gbc.gridy = 7;
         gbc.gridwidth = 2;
         filterGrid.add(amenitiesPanel, gbc);
         gbc.gridwidth = 1;
@@ -193,7 +204,7 @@ public class RoomsPanel extends JPanel {
         
         filterActions.add(btnReset);
         filterActions.add(btnSearch);
-        gbc.gridx = 2; gbc.gridy = 5;
+        gbc.gridx = 2; gbc.gridy = 7;
         filterGrid.add(filterActions, gbc);
 
         headerPanel.add(filterGrid, BorderLayout.CENTER);
@@ -248,6 +259,7 @@ public class RoomsPanel extends JPanel {
         txtCheckIn.setText(LocalDate.now().toString());
         txtCheckOut.setText(LocalDate.now().plusDays(2).toString());
         cbRoomType.setSelectedIndex(0);
+        if (cbMinRating != null) cbMinRating.setSelectedIndex(0);
         txtMinPrice.setText("");
         txtMaxPrice.setText("");
         spinGuests.setValue(1);
@@ -279,6 +291,18 @@ public class RoomsPanel extends JPanel {
 
     public void searchRooms() {
         listContainer.removeAll();
+
+        // Update Subtitle with Hotel Overall Average Rating
+        if (lblSubtitle != null) {
+            double overallAvg = service.getOverallAverageRating();
+            int totalReviews = service.getTotalReviewsCount();
+            if (totalReviews > 0) {
+                lblSubtitle.setText("Compare available rooms, amenities, and stay prices.  •  Overall Guest Rating: ★ " +
+                        String.format("%.1f", overallAvg) + " / 5.0 (" + totalReviews + " review" + (totalReviews == 1 ? "" : "s") + ")");
+            } else {
+                lblSubtitle.setText("Compare available rooms, amenities, and total stay prices.");
+            }
+        }
 
         // 1. Read input values
         LocalDate checkIn = null;
@@ -312,6 +336,16 @@ public class RoomsPanel extends JPanel {
             type = RoomType.fromString(typeSel);
         }
 
+        Double minRating = null;
+        if (cbMinRating != null && cbMinRating.getSelectedIndex() > 0) {
+            switch (cbMinRating.getSelectedIndex()) {
+                case 1: minRating = 4.0; break;
+                case 2: minRating = 3.0; break;
+                case 3: minRating = 2.0; break;
+                case 4: minRating = 1.0; break;
+            }
+        }
+
         BigDecimal minPrice = null;
         if (!txtMinPrice.getText().trim().isEmpty()) {
             try {
@@ -337,7 +371,7 @@ public class RoomsPanel extends JPanel {
         int guestCount = (int) spinGuests.getValue();
 
         // Fetch matched available rooms
-        List<Room> matchedRooms = service.getAvailableRooms(checkIn, checkOut, type, minPrice, maxPrice, amenities, guestCount);
+        List<Room> matchedRooms = service.getAvailableRooms(checkIn, checkOut, type, minPrice, maxPrice, amenities, guestCount, minRating);
 
         // 2. Build Grid layout of rooms
         GridBagConstraints gbc = new GridBagConstraints();
@@ -415,19 +449,17 @@ public class RoomsPanel extends JPanel {
         detailsPanel.add(headerLine);
         detailsPanel.add(Box.createVerticalStrut(5));
 
-        // Average Rating Stars (Bonus)
+        // Average Rating Display
         double avgRating = service.getRoomAverageRating(room.getRoomNumber());
         List<hotel.model.Review> reviews = service.getRoomReviews(room.getRoomNumber());
         JLabel lblRating = new JLabel();
-        lblRating.setFont(Theme.FONT_BODY);
+        lblRating.setFont(Theme.FONT_BODY_BOLD);
         lblRating.setForeground(Theme.WARNING);
         lblRating.setAlignmentX(Component.LEFT_ALIGNMENT);
         if (reviews.isEmpty()) {
-            lblRating.setText("★ New Room (No ratings)");
+            lblRating.setText("★ New Room (No ratings yet)");
         } else {
-            StringBuilder stars = new StringBuilder("★ ");
-            stars.append(String.format("%.1f", avgRating)).append(" (").append(reviews.size()).append(" review(s))");
-            lblRating.setText(stars.toString());
+            lblRating.setText(String.format("★ %.1f / 5.0 (%d review%s)", avgRating, reviews.size(), reviews.size() == 1 ? "" : "s"));
         }
         detailsPanel.add(lblRating);
         detailsPanel.add(Box.createVerticalStrut(5));

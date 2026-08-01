@@ -114,6 +114,12 @@ public class HotelService {
     public List<Room> getAvailableRooms(LocalDate checkIn, LocalDate checkOut, Room.RoomType type,
                                         BigDecimal minPrice, BigDecimal maxPrice, List<String> selectedAmenities,
                                         Integer guestCount) {
+        return getAvailableRooms(checkIn, checkOut, type, minPrice, maxPrice, selectedAmenities, guestCount, null);
+    }
+
+    public List<Room> getAvailableRooms(LocalDate checkIn, LocalDate checkOut, Room.RoomType type,
+                                        BigDecimal minPrice, BigDecimal maxPrice, List<String> selectedAmenities,
+                                        Integer guestCount, Double minRating) {
         return rooms.stream().filter(room -> {
             if (guestCount != null && room.getCapacity() < guestCount) {
                 return false;
@@ -129,6 +135,12 @@ public class HotelService {
             }
             if (selectedAmenities != null && !selectedAmenities.isEmpty()) {
                 if (!room.getAmenities().containsAll(selectedAmenities)) {
+                    return false;
+                }
+            }
+            if (minRating != null && minRating > 0) {
+                double avg = getRoomAverageRating(room.getRoomNumber());
+                if (avg < minRating) {
                     return false;
                 }
             }
@@ -537,6 +549,30 @@ public class HotelService {
             }
             double avg = sum / roomReviews.size();
             return Math.round(avg * 10.0) / 10.0;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public double getOverallAverageRating() {
+        lock.readLock().lock();
+        try {
+            if (reviews.isEmpty()) return 0.0;
+            double sum = 0;
+            for (Review r : reviews) {
+                sum += r.getRating();
+            }
+            double avg = sum / reviews.size();
+            return Math.round(avg * 10.0) / 10.0;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public int getTotalReviewsCount() {
+        lock.readLock().lock();
+        try {
+            return reviews.size();
         } finally {
             lock.readLock().unlock();
         }
