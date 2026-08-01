@@ -3,6 +3,7 @@ package hotel.ui;
 import hotel.exception.HotelException;
 import hotel.model.Reservation;
 import hotel.model.Reservation.ReservationStatus;
+import hotel.model.Review;
 import hotel.model.Room;
 import hotel.service.HotelService;
 import hotel.util.ImageLoader;
@@ -16,6 +17,7 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class BookingsPanel extends JPanel {
@@ -297,6 +299,8 @@ public class BookingsPanel extends JPanel {
     }
 
     private void openReviewDialog(Reservation res) {
+        Optional<Review> existingRev = service.getUserReviewForRoom(res.getRoomNumber(), res.getUsername());
+
         // Form layout for reviews
         JPanel form = new JPanel(new GridBagLayout());
         form.setBackground(Theme.BG_SECONDARY);
@@ -315,6 +319,9 @@ public class BookingsPanel extends JPanel {
 
         JComboBox<Integer> cbStars = new JComboBox<>(new Integer[]{5, 4, 3, 2, 1});
         Theme.styleComboBox(cbStars);
+        if (existingRev.isPresent()) {
+            cbStars.setSelectedItem(existingRev.get().getRating());
+        }
         gbc.gridx = 0; gbc.gridy = 1;
         form.add(cbStars, gbc);
 
@@ -325,6 +332,9 @@ public class BookingsPanel extends JPanel {
         form.add(lblComment, gbc);
 
         JTextArea txtComment = new JTextArea(4, 30);
+        if (existingRev.isPresent()) {
+            txtComment.setText(existingRev.get().getComment());
+        }
         txtComment.setBackground(Theme.BG_PRIMARY);
         txtComment.setForeground(Theme.TEXT_PRIMARY);
         txtComment.setCaretColor(Theme.TEXT_PRIMARY);
@@ -341,7 +351,8 @@ public class BookingsPanel extends JPanel {
         gbc.gridx = 0; gbc.gridy = 3;
         form.add(textScroll, gbc);
 
-        int option = JOptionPane.showConfirmDialog(this, form, "Leave Review for Room " + res.getRoomNumber(),
+        String dialogTitle = existingRev.isPresent() ? "Update Review for Room " : "Leave Review for Room ";
+        int option = JOptionPane.showConfirmDialog(this, form, dialogTitle + res.getRoomNumber(),
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (option == JOptionPane.OK_OPTION) {

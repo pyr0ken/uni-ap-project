@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -470,21 +471,50 @@ public class HotelService {
                 throw new HotelException("You can only review rooms where you have completed a stay.");
             }
 
-            // Generate unique review ID
-            String reviewId = "REV-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-            Review review = new Review(reviewId, roomNumber, username, rating, comment);
-            
-            reviews.add(review);
-            db.saveReviews(reviews);
+            String safeComment = (comment == null) ? "" : comment.trim();
+
+            // Check if user already reviewed this room to update existing review instead of creating duplicates
+            Optional<Review> existingOpt = reviews.stream()
+                    .filter(rev -> rev.getRoomNumber().equals(roomNumber) &&
+                            rev.getUsername().equalsIgnoreCase(username))
+                    .findFirst();
+
+            Review review;
+            if (existingOpt.isPresent()) {
+                Review existing = existingOpt.get();
+                review = new Review(existing.getReviewId(), roomNumber, username, rating, safeComment);
+                reviews.remove(existing);
+                reviews.add(review);
+            } else {
+                String reviewId = "REV-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+                review = new Review(reviewId, roomNumber, username, rating, safeComment);
+                reviews.add(review);
+            }
+
+            db.saveReview(review);
             return review;
         } finally {
             lock.writeLock().unlock();
         }
     }
 
+    public Optional<Review> getUserReviewForRoom(String roomNumber, String username) {
+        lock.readLock().lock();
+        try {
+            if (roomNumber == null || username == null) return Optional.empty();
+            return reviews.stream()
+                    .filter(rev -> rev.getRoomNumber().equals(roomNumber) &&
+                            rev.getUsername().equalsIgnoreCase(username))
+                    .findFirst();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     public List<Review> getRoomReviews(String roomNumber) {
         lock.readLock().lock();
         try {
+            if (roomNumber == null) return new ArrayList<>();
             return reviews.stream()
                     .filter(rev -> rev.getRoomNumber().equals(roomNumber))
                     .collect(Collectors.toList());
@@ -496,6 +526,7 @@ public class HotelService {
     public double getRoomAverageRating(String roomNumber) {
         lock.readLock().lock();
         try {
+            if (roomNumber == null) return 0.0;
             List<Review> roomReviews = reviews.stream()
                     .filter(rev -> rev.getRoomNumber().equals(roomNumber))
                     .collect(Collectors.toList());
@@ -504,7 +535,8 @@ public class HotelService {
             for (Review r : roomReviews) {
                 sum += r.getRating();
             }
-            return sum / roomReviews.size();
+            double avg = sum / roomReviews.size();
+            return Math.round(avg * 10.0) / 10.0;
         } finally {
             lock.readLock().unlock();
         }
